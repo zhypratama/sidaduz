@@ -11,3 +11,4 @@ if exist "C:\xampp\mysql\bin\mysqladmin.exe" (
     echo [ERROR] Utility mysqladmin tidak ditemukan.
 )
 :: pause
+exit

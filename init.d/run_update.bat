@@ -1,5 +1,7 @@
 @echo off
-cd /d "c:\xampp\htdocs\sisko-app"
+:: Move to root
+cd /d "%~dp0.."
+
 echo ===================================================
 echo     UPDATE APLIKASI SISKO (SIDADU)
 echo ===================================================

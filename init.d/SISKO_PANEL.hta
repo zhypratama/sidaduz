@@ -218,7 +218,23 @@
 
     <script language="JScript">
         var shell = new ActiveXObject("WScript.Shell");
-        var appPath = "c:\\xampp\\htdocs\\sisko-app\\";
+        
+        // Robust Path Parsing
+        var path = window.location.pathname;
+        // Remove leading slash if present (e.g. /C:/... -> C:/...)
+        if (path.charAt(0) == '/' || path.charAt(0) == '\\') {
+            path = path.substring(1);
+        }
+        
+        path = decodeURI(path);
+        path = path.replace(/\//g, "\\");
+        
+        var appPath = path.substring(0, path.lastIndexOf("\\") + 1);
+        
+        // Set shell CWD safely
+        try {
+            shell.CurrentDirectory = appPath;
+        } catch(e) {}
 
         function runBat(filename, type) {
             try {

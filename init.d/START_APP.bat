@@ -1,5 +1,8 @@
 @echo off
-cd /d "c:\xampp\htdocs\sisko-app"
+:: Note: This script is now in init.d/
+:: We need to move UP one level to root to run artisan/npm
+cd /d "%~dp0.."
+
 echo ===================================================
 echo     MEMULAI APLIKASI SISKO APP (SIDADU)
 echo ===================================================
@@ -18,8 +21,12 @@ if not exist "node_modules" (
 
 echo.
 echo [INFO] Menyalakan Server...
-wscript run_hidden.vbs "cmd /c php artisan serve"
-wscript run_hidden.vbs "cmd /c npm run dev"
+:: Use init.d\run_hidden.vbs relative to root? No, run_hidden.vbs is in init.d same as this script.
+:: But we are currently in ROOT due to cd ..
+:: So we call "init.d\run_hidden.vbs"
+
+wscript init.d\run_hidden.vbs "cmd /c php artisan serve"
+wscript init.d\run_hidden.vbs "cmd /c npm run dev"
 
 echo.
 echo [SUCCESS] Aplikasi sedang berjalan! 
