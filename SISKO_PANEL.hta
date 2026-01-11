@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SIDADU - Control Panel v.1.0.0</title>
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <hta:application id="oHTA" 
+        applicationname="SIDADUControlPanel" 
+        border="thick" 
+        borderstyle="normal" 
+        caption="yes" 
+        icon="c:\xampp\htdocs\sisko-app\public\favicon.ico" 
+        maximizebutton="no" 
+        minimizebutton="yes" 
+        showintaskbar="yes" 
+        singleinstance="yes" 
+        sysmenu="yes" 
+        version="1.0" 
+        windowstate="normal"
+        innerborder="no"
+        selection="no"
+        scroll="no" />
+    
+    <style>
+        :root {
+            /* Palette: Vibrant & Unique (Avoiding standard pure RGB) */
+            --bg-gradient: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 99%, #FECFEF 100%); /* Peachy Pink */
+            --card-bg: rgba(255, 255, 255, 0.6);
+            --text-primary: #2c0b0e; /* Deep Red/Brown for contrast */
+            --text-secondary: #4a1d24;
+            --btn-active: linear-gradient(to right, #ff758c 0%, #ff7eb3 100%); /* Berry Gradient */
+            --btn-stop: #333333;
+            --btn-update: #F57F17; /* Deep Orange */
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-image: var(--bg-gradient);
+            margin: 0;
+            padding: 0;
+            color: var(--text-primary);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .header {
+            padding: 25px 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 800;
+            color: #d6336c; /* Berry Pink */
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-shadow: 1px 1px 0px rgba(255,255,255,0.5);
+        }
+        
+        .header p {
+            margin: 5px 0 0;
+            font-size: 12px;
+            font-weight: 600;
+            color: #862e9c; /* Grape */
+        }
+
+        .container {
+            padding: 0 25px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card-bg);
+            border: 2px solid white;
+            border-radius: 16px;
+            padding: 15px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card.running {
+            background: rgba(255, 255, 255, 0.9);
+            border-color: #ff758c; /* Pink Border when active */
+            box-shadow: 0 0 15px rgba(255, 117, 140, 0.4);
+        }
+
+        .info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .icon-box {
+            width: 40px;
+            height: 40px;
+            background: white;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 14px;
+            color: #d6336c;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .details h3 { font-size: 14px; margin: 0; font-weight: 700; color: #212529; }
+        .details span { font-size: 10px; font-weight: 600; color: #862e9c; }
+
+        /* Buttons */
+        .controls { display: flex; gap: 8px; }
+        
+        button {
+            font-family: inherit;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        button:active { transform: scale(0.95); }
+
+        .btn-pill {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .btn-start {
+            background: white;
+            color: #d6336c;
+            border: 2px solid #d6336c;
+        }
+        .btn-start:hover { background: #d6336c; color: white; }
+        
+        .btn-start.active {
+            background: var(--btn-active);
+            color: #2c0b0e; /* Dark Text, No White */
+            border: none;
+            padding: 10px 18px; 
+        }
+
+        .btn-stop {
+            background: var(--btn-stop);
+            color: #FFD166; /* Gold Text */
+        }
+        .btn-stop:hover { background: black; }
+
+        /* Main Launch Button */
+        .launch-btn {
+            width: 100%;
+            padding: 15px;
+            background: #FFD166; /* Vibrant Yellow/Gold */
+            color: #4a1d24;      /* Dark Red Text */
+            font-weight: 800;
+            font-size: 14px;
+            border-radius: 16px;
+            margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(255, 209, 102, 0.4);
+        }
+        .launch-btn:hover { background: #ffc400; transform: translateY(-2px); }
+
+        /* Utility Buttons Grid */
+        .utils-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: auto;
+            margin-bottom: 5px;
+        }
+
+        .util-btn {
+            padding: 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            background: rgba(255,255,255,0.4);
+            color: #2c0b0e;
+            border: 1px solid rgba(255,255,255,0.6);
+        }
+        .util-btn:hover { background: white; }
+        
+        /* Footer */
+        .footer {
+            text-align: center;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 15px;
+            background: rgba(255,255,255,0.3);
+            border-top: 1px solid rgba(255,255,255,0.4);
+            color: #4a1d24;
+        }
+
+    </style>
+
+    <script language="VBScript">
+        Sub Window_OnLoad
+            ' Compact Size
+            window.resizeTo 380, 580
+            Dim screenWidth, screenHeight
+            screenWidth = Screen.AvailWidth
+            screenHeight = Screen.AvailHeight
+            window.moveTo (screenWidth - 380) / 2, (screenHeight - 580) / 2
+        End Sub
+    </script>
+
+    <script language="JScript">
+        var shell = new ActiveXObject("WScript.Shell");
+        var appPath = "c:\\xampp\\htdocs\\sisko-app\\";
+
+        function runBat(filename, type) {
+            try {
+                shell.CurrentDirectory = appPath;
+                
+                // Show window ONLY for updates, otherwise Hidden (0)
+                var visibility = (filename.indexOf("update") !== -1) ? 1 : 0;
+                
+                shell.Run('"' + appPath + filename + '"', visibility, false);
+                
+                if (type) {
+                    if (filename.indexOf("start") !== -1 || filename.indexOf("START") !== -1) {
+                        setRunning(type);
+                    } else {
+                        setStopped(type);
+                    }
+                }
+            } catch (e) {
+                alert("Error: " + e.message);
+            }
+        }
+
+        function setRunning(id) {
+            var card = document.getElementById("card-" + id);
+            var btnStart = document.getElementById("btn-start-" + id);
+            var statusText = document.getElementById("status-" + id);
+            
+            if(card) card.className = "card running";
+            if(btnStart) {
+                btnStart.className = "btn-pill btn-start active";
+                btnStart.innerText = "RUNNING";
+            }
+            if(statusText) statusText.innerText = "Service Active";
+        }
+
+        function setStopped(id) {
+            var card = document.getElementById("card-" + id);
+            var btnStart = document.getElementById("btn-start-" + id);
+            var statusText = document.getElementById("status-" + id);
+
+            if(card) card.className = "card";
+            if(btnStart) {
+                btnStart.className = "btn-pill btn-start";
+                btnStart.innerText = "Start";
+            }
+            if(statusText) statusText.innerText = "Service Stopped";
+        }
+
+        function openBrowser() {
+            try {
+                shell.Run("http://127.0.0.1:8000");
+            } catch (e) {
+                alert("Gagal membuka browser.");
+            }
+        }
+    </script>
+</head>
+<body>
+    <div class="header">
+        <h1>SIDADU</h1>
+        <p>Control Panel v.1.0.0</p>
+    </div>
+
+    <div class="container">
+        
+        <!-- DATABASE -->
+        <div id="card-db" class="card">
+            <div class="info">
+                <div class="icon-box">DB</div>
+                <div class="details">
+                    <h3>Database</h3>
+                    <span id="status-db">Mati</span>
+                </div>
+            </div>
+            <div class="controls">
+                <button id="btn-start-db" class="btn-pill btn-start" onclick="runBat('start_db.bat', 'db')">Start</button>
+                <button class="btn-pill btn-stop" onclick="runBat('stop_db.bat', 'db')">Stop</button>
+            </div>
+        </div>
+
+        <!-- APP -->
+        <div id="card-app" class="card">
+            <div class="info">
+                <div class="icon-box">APP</div>
+                <div class="details">
+                    <h3>Aplikasi</h3>
+                    <span id="status-app">Mati</span>
+                </div>
+            </div>
+            <div class="controls">
+                <button id="btn-start-app" class="btn-pill btn-start" onclick="runBat('START_APP.bat', 'app')">Start</button>
+                <button class="btn-pill btn-stop" onclick="runBat('STOP_APP.bat', 'app')">Stop</button>
+            </div>
+        </div>
+
+        <button class="launch-btn" onclick="openBrowser()">
+            Buka SIDADU
+        </button>
+
+        <div class="utils-grid">
+            <button class="util-btn" onclick="runBat('run_update.bat', '')">
+                &#8635; Cek Pembaruan
+            </button>
+            <button class="util-btn" onclick="window.close()">
+                &#10006; Exit
+            </button>
+        </div>
+
+    </div>
+
+    <div class="footer">
+        2026 | SIDADU-Sistem Informasi Data Terpadu<br>
+        by FanZhy & Team
+    </div>
+</body>
+</html>
