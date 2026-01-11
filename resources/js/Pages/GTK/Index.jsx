@@ -1,15 +1,20 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { Plus, Search, Filter, Download, User, Edit, Trash2, MapPin, Phone, Upload, X } from 'lucide-react';
+import { Plus, Search, Filter, Download, User, Edit, Trash2, MapPin, Phone, Upload, X, LayoutGrid, List } from 'lucide-react';
 import Pagination from '@/Components/Pagination';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function Index({ auth, gtks }) {
     const [search, setSearch] = useState('');
+    const [viewMode, setViewMode] = useState(localStorage.getItem('gtkViewMode') || 'grid'); // 'grid' | 'list'
     const [isImportOpen, setIsImportOpen] = useState(false);
     const { data: importData, setData: setImportData, post: postImport, processing: importProcessing, reset: resetImport, errors: importErrors } = useForm({
         file: null
     });
+
+    useEffect(() => {
+        localStorage.setItem('gtkViewMode', viewMode);
+    }, [viewMode]);
 
     const handleDelete = (id) => {
         if (confirm('Apakah Anda yakin ingin menghapus data ini?')) {
@@ -53,6 +58,24 @@ export default function Index({ auth, gtks }) {
                     </div>
 
                     <div className="flex gap-2">
+                        {/* View Toggle */}
+                        <div className="bg-gray-100 p-1 rounded-xl flex items-center mr-2">
+                            <button
+                                onClick={() => setViewMode('grid')}
+                                className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white shadow text-primary' : 'text-gray-400 hover:text-gray-600'}`}
+                                title="Tampilan Grid"
+                            >
+                                <LayoutGrid size={18} />
+                            </button>
+                            <button
+                                onClick={() => setViewMode('list')}
+                                className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white shadow text-primary' : 'text-gray-400 hover:text-gray-600'}`}
+                                title="Tampilan List"
+                            >
+                                <List size={18} />
+                            </button>
+                        </div>
+
                         <select
                             className="px-4 py-2.5 bg-gray-50 border-none rounded-xl text-gray-600 text-sm font-medium focus:ring-2 focus:ring-primary/20 cursor-pointer"
                             defaultValue={10}
@@ -70,68 +93,139 @@ export default function Index({ auth, gtks }) {
                             Import Data
                         </button>
                         <button className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 hover:bg-gray-100 rounded-xl text-gray-600 text-sm font-medium transition-colors">
-                            <Filter size={18} />
-                            Filter
-                        </button>
-                        <button className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 hover:bg-gray-100 rounded-xl text-gray-600 text-sm font-medium transition-colors">
                             <Download size={18} />
                             Export
                         </button>
                     </div>
                 </div>
 
-                {/* Grid Card View for GTK */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {gtks.data.length > 0 ? (
-                        gtks.data.map((gtk) => (
-                            <div key={gtk.id} className="bg-white border boundary-gray-100 rounded-2xl p-5 hover:shadow-md transition-shadow flex flex-col items-center text-center relative group">
-                                <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <Link href={route('gtk.edit', gtk.id)} className="p-2 text-gray-400 hover:text-secondary bg-white shadow-sm rounded-lg hover:shadow-md transition-all">
-                                        <Edit size={16} />
-                                    </Link>
-                                    <button
-                                        onClick={() => handleDelete(gtk.id)}
-                                        className="p-2 text-gray-400 hover:text-red-500 bg-white shadow-sm rounded-lg"
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
-                                </div>
+                {/* Content View */}
+                {viewMode === 'grid' ? (
+                    /* GRID VIEW */
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {gtks.data.length > 0 ? (
+                            gtks.data.map((gtk) => (
+                                <div key={gtk.id} className="bg-white border boundary-gray-100 rounded-2xl p-5 hover:shadow-md transition-shadow flex flex-col items-center text-center relative group">
+                                    <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Link href={route('gtk.edit', gtk.id)} className="p-2 text-gray-400 hover:text-secondary bg-white shadow-sm rounded-lg hover:shadow-md transition-all">
+                                            <Edit size={16} />
+                                        </Link>
+                                        <button
+                                            onClick={() => handleDelete(gtk.id)}
+                                            className="p-2 text-gray-400 hover:text-red-500 bg-white shadow-sm rounded-lg"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
 
-                                <div className="w-24 h-24 rounded-full bg-gray-100 mb-4 overflow-hidden border-4 border-white shadow-sm">
-                                    {gtk.foto ? (
-                                        <img src={`/storage/${gtk.foto}`} alt={gtk.nama} className="w-full h-full object-cover" />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-gray-400">
-                                            <User size={40} />
+                                    <div className="w-24 h-24 rounded-full bg-gray-100 mb-4 overflow-hidden border-4 border-white shadow-sm">
+                                        {gtk.foto ? (
+                                            <img src={`/storage/${gtk.foto}`} alt={gtk.nama} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                                <User size={40} />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <h3 className="font-bold text-gray-800 text-lg">{gtk.nama}</h3>
+                                    <p className="text-sm text-primary font-medium mb-1">{gtk.jabatan}</p>
+                                    <p className="text-xs text-gray-500 mb-4">{gtk.nip || '-'}</p>
+
+                                    <div className="w-full border-t border-gray-100 pt-4 flex flex-col gap-2 text-sm text-gray-600">
+                                        <div className="flex items-center justify-center gap-2">
+                                            <MapPin size={14} className="text-gray-400" />
+                                            <span>{gtk.alamat || '-'}</span>
                                         </div>
-                                    )}
-                                </div>
-
-                                <h3 className="font-bold text-gray-800 text-lg">{gtk.nama}</h3>
-                                <p className="text-sm text-primary font-medium mb-1">{gtk.jabatan}</p>
-                                <p className="text-xs text-gray-500 mb-4">{gtk.nip || '-'}</p>
-
-                                <div className="w-full border-t border-gray-100 pt-4 flex flex-col gap-2 text-sm text-gray-600">
-                                    <div className="flex items-center justify-center gap-2">
-                                        <MapPin size={14} className="text-gray-400" />
-                                        <span>{gtk.alamat || '-'}</span>
-                                    </div>
-                                    <div className="flex items-center justify-center gap-2">
-                                        <Phone size={14} className="text-gray-400" />
-                                        <span>{gtk.no_hp || '-'}</span>
+                                        <div className="flex items-center justify-center gap-2">
+                                            <Phone size={14} className="text-gray-400" />
+                                            <span>{gtk.no_hp || '-'}</span>
+                                        </div>
                                     </div>
                                 </div>
+                            ))
+                        ) : (
+                            <div className="col-span-full py-12 text-center text-gray-400 bg-gray-50 rounded-2xl border-dashed border-2 border-gray-200">
+                                <div className="flex flex-col items-center justify-center">
+                                    <User size={48} className="mb-2 opacity-20" />
+                                    <p>Belum ada data GTK</p>
+                                </div>
                             </div>
-                        ))
-                    ) : (
-                        <div className="col-span-full py-12 text-center text-gray-400 bg-gray-50 rounded-2xl border-dashed border-2 border-gray-200">
-                            <div className="flex flex-col items-center justify-center">
-                                <User size={48} className="mb-2 opacity-20" />
-                                <p>Belum ada data GTK</p>
-                            </div>
-                        </div>
-                    )}
-                </div>
+                        )}
+                    </div>
+                ) : (
+                    /* LIST VIEW */
+                    <div className="overflow-x-auto border border-gray-100 rounded-xl">
+                        <table className="w-full text-sm text-left text-gray-500">
+                            <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-4 rounded-tl-xl">Nama GTK</th>
+                                    <th className="px-6 py-4">NIP / Jabatan</th>
+                                    <th className="px-6 py-4">Kontak</th>
+                                    <th className="px-6 py-4 text-center rounded-tr-xl">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {gtks.data.length > 0 ? (
+                                    gtks.data.map((gtk) => (
+                                        <tr key={gtk.id} className="bg-white border-b hover:bg-gray-50 transition-colors">
+                                            <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-full bg-gray-100 flex-shrink-0 overflow-hidden">
+                                                        {gtk.foto ? (
+                                                            <img src={`/storage/${gtk.foto}`} alt={gtk.nama} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                                                <User size={20} />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        <div className="font-bold">{gtk.nama}</div>
+                                                        <div className="text-xs text-gray-500">{gtk.jenis_kelamin === 'L' ? 'Laki-laki' : 'Perempuan'}</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="font-medium text-gray-700">{gtk.jabatan}</div>
+                                                <div className="text-xs text-gray-500">{gtk.nip || '-'}</div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex flex-col gap-1 text-xs">
+                                                    <div className="flex items-center gap-1">
+                                                        <Phone size={12} className="text-gray-400" /> {gtk.no_hp || '-'}
+                                                    </div>
+                                                    <div className="flex items-center gap-1">
+                                                        <MapPin size={12} className="text-gray-400" /> {gtk.alamat || '-'}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-center">
+                                                <div className="flex justify-center gap-2">
+                                                    <Link href={route('gtk.edit', gtk.id)} className="p-2 text-gray-400 hover:text-secondary bg-gray-50 hover:bg-white border border-gray-100 rounded-lg transition-all">
+                                                        <Edit size={16} />
+                                                    </Link>
+                                                    <button
+                                                        onClick={() => handleDelete(gtk.id)}
+                                                        className="p-2 text-gray-400 hover:text-red-500 bg-gray-50 hover:bg-white border border-gray-100 rounded-lg transition-all"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan="4" className="px-6 py-12 text-center text-gray-400">
+                                            Belum ada data GTK
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
 
                 {/* Pagination */}
                 <div className="mt-8 flex justify-center">

@@ -16,15 +16,37 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
     ->name('dashboard');
 
 use App\Http\Controllers\SuratController;
+// Public Routes for Surat Validation
+Route::get('/surat/validasi/{token}', [SuratController::class, 'validasi'])->name('surat-keluar.validasi');
+Route::get('/surat/token/{token}', [SuratController::class, 'showByToken'])->name('surat-keluar.pdf-token');
 
-    // --- SISWA & GTK ---
+// --- SISWA & GTK ---
     Route::middleware('auth')->group(function () {
         // Manajemen Siswa
         Route::middleware(['can:view.siswa'])->group(function() {
             Route::get('siswa/akun', [\App\Http\Controllers\StudentController::class, 'akun'])->name('siswa.akun.index');
+            Route::post('siswa/akun/generate-all', [\App\Http\Controllers\StudentController::class, 'generateAll'])->name('siswa.akun.generate-all');
+            Route::post('siswa/akun/reset-all', [\App\Http\Controllers\StudentController::class, 'resetAllAccounts'])->name('siswa.akun.reset-all');
             Route::post('siswa/akun/{id}', [\App\Http\Controllers\StudentController::class, 'storeAkun'])->name('siswa.akun.store');
-            Route::post('siswa/akun/{id}/reset', [\App\Http\Controllers\StudentController::class, 'resetPassword'])->name('siswa.akun.reset');
+            Route::post('siswa/akun/{id}/reset-password', [\App\Http\Controllers\StudentController::class, 'resetPassword'])->name('siswa.akun.reset-password');
+            
+            // Import & Template
+            Route::post('siswa/import', [\App\Http\Controllers\StudentController::class, 'import'])->name('siswa.import');
+            Route::get('siswa/template', [\App\Http\Controllers\StudentController::class, 'downloadTemplate'])->name('siswa.template');
+            
+            // Bulk Delete
+            Route::delete('siswa/destroy-all', [\App\Http\Controllers\StudentController::class, 'destroyAll'])->name('siswa.destroy-all');
+
             Route::resource('siswa', \App\Http\Controllers\StudentController::class);
+
+            // Kehadiran / Absensi
+            Route::get('/absensi', [\App\Http\Controllers\AttendanceController::class, 'index'])->name('absensi.index');
+            Route::post('/absensi/import', [\App\Http\Controllers\AttendanceController::class, 'import'])->name('absensi.import');
+            Route::post('/absensi/export', [\App\Http\Controllers\AttendanceController::class, 'export'])->name('absensi.export');
+            
+            // Mutasi & Alumni
+            Route::get('/mutasi', [\App\Http\Controllers\MutationController::class, 'index'])->name('mutasi.index');
+            Route::get('/mutasi/{student}/print', [\App\Http\Controllers\MutationController::class, 'print'])->name('mutasi.print');
         });
 
         // Profile User
@@ -61,8 +83,7 @@ use App\Http\Controllers\SuratController;
             Route::post('/keluar/{id}/approve', [SuratController::class, 'approve'])->name('keluar.approve');
             Route::get('/keluar/{id}/pdf', [SuratController::class, 'show'])->name('keluar.pdf');
             Route::post('/keluar/{id}/upload', [SuratController::class, 'uploadScan'])->name('keluar.upload'); // Upload Scan Manual
-            Route::get('/keluar/token/{token}', [SuratController::class, 'showByToken'])->name('keluar.pdf-token'); // New Token Route
-            Route::get('/validasi/{token}', [SuratController::class, 'validasi'])->name('keluar.validasi');
+            Route::post('/keluar/{id}/upload', [SuratController::class, 'uploadScan'])->name('keluar.upload'); // Upload Scan Manual
 
             Route::resource('template', \App\Http\Controllers\SuratTemplateController::class)->names('template');
             
@@ -76,10 +97,10 @@ use App\Http\Controllers\SuratController;
         Route::prefix('gtk')->name('gtk.')->middleware(['can:view.gtk'])->group(function() {
             Route::get('/akun', [\App\Http\Controllers\GtkController::class, 'akun'])->name('akun.index');
             Route::post('/akun/generate-all', [\App\Http\Controllers\GtkController::class, 'generateAll'])->name('akun.generate-all');
-            Route::post('/akun/{id}/reset', [\App\Http\Controllers\GtkController::class, 'resetAccount'])->name('akun.reset');
+            Route::post('/akun/{id}/recreate', [\App\Http\Controllers\GtkController::class, 'resetAccount'])->name('akun.recreate');
             Route::post('/akun/reset-all', [\App\Http\Controllers\GtkController::class, 'resetAllAccounts'])->name('akun.reset-all');
             Route::post('/akun/{id}', [\App\Http\Controllers\GtkController::class, 'storeAkun'])->name('akun.store');
-            Route::post('/akun/{id}/reset', [\App\Http\Controllers\GtkController::class, 'resetPassword'])->name('akun.reset');
+            Route::post('/akun/{id}/reset-password', [\App\Http\Controllers\GtkController::class, 'resetPassword'])->name('akun.reset-password');
             Route::get('/piket', [\App\Http\Controllers\GtkController::class, 'piket'])->name('piket.index');
             Route::post('/piket', [\App\Http\Controllers\GtkController::class, 'storePiket'])->name('piket.store');
 
@@ -100,13 +121,20 @@ use App\Http\Controllers\SuratController;
              Route::delete('/kalender/{id}', [\App\Http\Controllers\KurikulumController::class, 'destroyCalendar'])->name('kalender.destroy');
              Route::post('/kalender/sync', [\App\Http\Controllers\KurikulumController::class, 'syncReference'])->name('kalender.sync');
         });
+        
+        // Klasifikasi Surat
+        Route::post('klasifikasi-surat', [\App\Http\Controllers\KlasifikasiSuratController::class, 'store'])->name('klasifikasi-surat.store')->middleware(['can:view.surat']);
 
-        // Admin Settings
-        Route::prefix('settings')->name('settings.')->middleware(['can:view.settings'])->group(function() {
-            Route::get('/', [\App\Http\Controllers\SettingController::class, 'index'])->name('index');
-            Route::post('/', [\App\Http\Controllers\SettingController::class, 'update'])->name('update');
-            Route::post('/permissions', [\App\Http\Controllers\SettingController::class, 'updatePermission'])->name('permissions.update');
-            Route::post('/update-app', [\App\Http\Controllers\SettingController::class, 'updateApp'])->name('app.update');
+        // Pengaturan
+        Route::middleware(['can:view.settings'])->prefix('settings')->group(function() {
+        // Route::prefix('settings')->group(function() {
+            Route::get('/', [\App\Http\Controllers\SettingController::class, 'index'])->name('settings.index');
+            Route::post('/', [\App\Http\Controllers\SettingController::class, 'update'])->name('settings.update');
+            Route::post('/app/update', [\App\Http\Controllers\SettingController::class, 'updateApp'])->name('settings.app.update');
+            Route::get('/backup/db', [\App\Http\Controllers\SettingController::class, 'backupDatabase'])->name('settings.backup.db');
+            Route::get('/backup/files', [\App\Http\Controllers\SettingController::class, 'backupStorage'])->name('settings.backup.files');
+            Route::post('/cache/clear', [\App\Http\Controllers\SettingController::class, 'clearCache'])->name('settings.cache.clear');
+            Route::post('/permissions', [\App\Http\Controllers\SettingController::class, 'updatePermission'])->name('settings.permissions.update');
         });
     });
 

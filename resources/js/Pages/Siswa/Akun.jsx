@@ -1,157 +1,185 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router } from '@inertiajs/react';
-import ContentBox from '@/Components/ContentBox';
-import { Search, UserCheck, KeyRound, ShieldAlert } from 'lucide-react';
+import { Search, UserCheck, Key, Shield, AlertCircle, CheckCircle, RefreshCcw, User } from 'lucide-react';
+import Pagination from '@/Components/Pagination';
 import { useState } from 'react';
-import Swal from 'sweetalert2';
 
 export default function Akun({ auth, students }) {
     const [search, setSearch] = useState('');
 
+    const generateAccount = (id) => {
+        if (confirm('Akun akan dibuat otomatis dengan username = NIS/Email dan password default "12345678". Lanjutkan?')) {
+            router.post(route('siswa.akun.store', id));
+        }
+    };
+
+    const resetPassword = (id) => {
+        if (confirm('Password pengguna akan direset menjadi default (NISN atau 12345678). Lanjutkan?')) {
+            router.post(route('siswa.akun.reset-password', id));
+        }
+    };
+
     const handleSearch = (e) => {
-        const value = e.target.value;
-        setSearch(value);
-        router.get(
-            route('siswa.akun.index'),
-            { search: value },
-            { preserveState: true, replace: true }
-        );
+        setSearch(e.target.value);
     };
 
-    const handleCreateAccount = (id, name) => {
-        Swal.fire({
-            title: 'Buat Akun Siswa?',
-            text: `Akun akan dibuat untuk ${name} dengan password default (NISN/12345678).`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Ya, Buat Akun',
-            cancelButtonText: 'Batal'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                router.post(route('siswa.akun.store', id), {}, {
-                    onSuccess: () => Swal.fire('Berhasil!', 'Akun siswa telah dibuat.', 'success')
-                });
-            }
-        });
-    };
-
-    const handleResetPassword = (id, name) => {
-        Swal.fire({
-            title: 'Reset Password?',
-            text: `Password untuk ${name} akan direset ke default (NISN/12345678).`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Ya, Reset',
-            confirmButtonColor: '#d33',
-            cancelButtonText: 'Batal'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                router.post(route('siswa.akun.reset', id), {}, {
-                    onSuccess: () => Swal.fire('Berhasil!', 'Password telah direset.', 'success')
-                });
-            }
-        });
+    const executeSearch = (e) => {
+        if (e.key === 'Enter' || e.type === 'change') {
+            router.get(route('siswa.akun.index'), { search: search }, { preserveState: true, replace: true, preserveScroll: true });
+        }
     };
 
     return (
         <AuthenticatedLayout
             user={auth.user}
-            header={<h2 className="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">Manajemen Akun Siswa</h2>}
+            header={
+                <div className="flex justify-between items-center">
+                    <div>
+                        <h2 className="font-bold text-2xl text-gray-800 dark:text-gray-200">Akun Siswa</h2>
+                        <p className="text-gray-500 dark:text-gray-400 text-sm">Kelola akses login Siswa</p>
+                    </div>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => {
+                                if (confirm('BAHAYA: Semua akun Siswa akan DIHAPUS dan DIBUAT ULANG. Lanjutkan?')) {
+                                    router.post(route('siswa.akun.reset-all'));
+                                }
+                            }}
+                            className="bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 px-5 py-2.5 rounded-xl flex items-center gap-2 text-sm font-medium transition-colors"
+                        >
+                            <Shield size={18} />
+                            Reset Semua Akun
+                        </button>
+                        <button
+                            onClick={() => {
+                                if (confirm('Sistem akan membuatkan akun untuk SEMUA siswa yang belum punya akun. Lanjutkan?')) {
+                                    router.post(route('siswa.akun.generate-all'));
+                                }
+                            }}
+                            className="bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-sm font-medium transition-colors shadow-lg shadow-primary/30"
+                        >
+                            <UserCheck size={18} />
+                            Generate Semua Akun
+                        </button>
+                    </div>
+                </div>
+            }
         >
-            <Head title="Akun Siswa" />
+            <Head title="Manajemen Akun Siswa" />
 
-            <div className="py-12">
-                <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            <div className="bg-white dark:bg-gray-800 rounded-[30px] p-6 shadow-sm shadow-gray-200/50 dark:shadow-gray-900/50">
+                {/* Info Alert */}
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl p-4 mb-6 flex items-start gap-3">
+                    <AlertCircle className="text-blue-500 mt-0.5" size={20} />
+                    <div className="text-sm text-blue-700 dark:text-blue-300">
+                        <p className="font-bold">Informasi Pembuatan Akun</p>
+                        <p>Akun yang digenerate otomatis akan memiliki password default: <span className="font-mono bg-blue-100 dark:bg-blue-800 px-1 rounded">NISN</span> atau <span className="font-mono bg-blue-100 dark:bg-blue-800 px-1 rounded">12345678</span>. Login menggunakan Email atau NISN.</p>
+                    </div>
+                </div>
 
-                    {/* Header Actions */}
-                    <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                        <div className="flex items-center gap-3 w-full md:w-auto">
-                            <ContentBox className="p-2 flex items-center gap-2 bg-white dark:bg-gray-800 rounded-full px-4 shadow-sm w-full md:w-96">
-                                <Search className="text-gray-400" size={20} />
-                                <input
-                                    type="text"
-                                    placeholder="Cari Siswa..."
-                                    value={search}
-                                    onChange={handleSearch}
-                                    className="border-none focus:ring-0 w-full text-sm bg-transparent dark:text-gray-200 placeholder-gray-400"
-                                />
-                            </ContentBox>
-                        </div>
+                {/* Toolbar */}
+                <div className="flex flex-col md:flex-row gap-4 mb-6 justify-between">
+                    <div className="relative w-full md:w-96">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                        <input
+                            type="text"
+                            placeholder="Cari nama atau NIS..."
+                            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-700 border-none rounded-xl focus:ring-2 focus:ring-primary/20 text-gray-700 dark:text-gray-200 placeholder-gray-400"
+                            value={search}
+                            onChange={handleSearch}
+                            onKeyDown={executeSearch}
+                        />
                     </div>
 
-                    {/* Table Content */}
-                    <ContentBox className="overflow-hidden bg-white dark:bg-gray-800 shadow-xl border border-gray-100 dark:border-gray-700">
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                                <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-200">
-                                    <tr>
-                                        <th scope="col" className="px-6 py-4 rounded-tl-2xl">No</th>
-                                        <th scope="col" className="px-6 py-4">Data Siswa</th>
-                                        <th scope="col" className="px-6 py-4">Status Akun</th>
-                                        <th scope="col" className="px-6 py-4">Email Login</th>
-                                        <th scope="col" className="px-6 py-4 rounded-tr-2xl text-center">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {students.data.length > 0 ? (
-                                        students.data.map((student, index) => (
-                                            <tr key={student.id} className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                                                <th scope="row" className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100 whitespace-nowrap">
-                                                    {(students.current_page - 1) * students.per_page + index + 1}
-                                                </th>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex flex-col">
-                                                        <span className="font-bold text-gray-800 dark:text-gray-200">{student.nama_lengkap}</span>
-                                                        <span className="text-xs text-gray-500">{student.nis} / {student.nisn}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    {student.user_id ? (
-                                                        <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded flex items-center gap-1 w-fit">
-                                                            <UserCheck size={14} /> Aktif
-                                                        </span>
-                                                    ) : (
-                                                        <span className="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded flex items-center gap-1 w-fit">
-                                                            <ShieldAlert size={14} /> Belum Ada
-                                                        </span>
-                                                    )}
-                                                </td>
-                                                <td className="px-6 py-4 font-mono text-xs">
-                                                    {student.user ? student.user.email : '-'}
-                                                </td>
-                                                <td className="px-6 py-4 text-center">
-                                                    <div className="flex justify-center gap-2">
-                                                        {!student.user_id ? (
-                                                            <button
-                                                                onClick={() => handleCreateAccount(student.id, student.nama_lengkap)}
-                                                                className="px-3 py-1.5 bg-primary text-white text-xs rounded-lg hover:bg-indigo-600 transition-colors flex items-center gap-1 shadow-sm"
-                                                            >
-                                                                <UserCheck size={14} /> Buat Akun
-                                                            </button>
-                                                        ) : (
-                                                            <button
-                                                                onClick={() => handleResetPassword(student.id, student.nama_lengkap)}
-                                                                className="px-3 py-1.5 bg-warning/10 text-warning text-xs rounded-lg hover:bg-warning hover:text-white transition-colors flex items-center gap-1 shadow-sm border border-warning/20"
-                                                            >
-                                                                <KeyRound size={14} /> Reset Pass
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    ) : (
-                                        <tr>
-                                            <td colSpan="5" className="px-6 py-24 text-center text-gray-500 dark:text-gray-400">
-                                                Belum ada data siswa.
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    </ContentBox>
+                    <select
+                        className="px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border-none rounded-xl text-gray-600 dark:text-gray-300 text-sm font-medium focus:ring-2 focus:ring-primary/20 cursor-pointer w-full md:w-auto"
+                        defaultValue={10}
+                        onChange={(e) => {
+                            router.get(route('siswa.akun.index'), { per_page: e.target.value, search: search }, { preserveScroll: true, preserveState: true });
+                        }}
+                    >
+                        {[10, 30, 50, 100, 200].map(n => <option key={n} value={n}>{n} Data</option>)}
+                    </select>
                 </div>
+
+                {/* Table */}
+                <div className="overflow-x-auto">
+                    <table className="w-full">
+                        <thead>
+                            <tr className="text-left border-b border-gray-100 dark:border-gray-700">
+                                <th className="pb-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Nama Siswa</th>
+                                <th className="pb-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Kelas</th>
+                                <th className="pb-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Status Akun</th>
+                                <th className="pb-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Username/Email</th>
+                                <th className="pb-3 px-4 text-xs font-semibold text-gray-400 text-right uppercase tracking-wider">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
+                            {students.data.length > 0 ? students.data.map((student) => (
+                                <tr key={student.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors">
+                                    <td className="py-4 px-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
+                                                {student.nama_lengkap.substring(0, 2).toUpperCase()}
+                                            </div>
+                                            <div>
+                                                <div className="font-medium text-gray-800 dark:text-gray-200">{student.nama_lengkap}</div>
+                                                <div className="text-xs text-gray-500">{student.nis} / {student.nisn}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="py-4 px-4 text-sm text-gray-600 dark:text-gray-300">
+                                        <span className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-xs font-medium">
+                                            {student.kelas_temp || 'Belum Set'}
+                                        </span>
+                                    </td>
+                                    <td className="py-4 px-4">
+                                        {student.user_id ? (
+                                            <span className="flex items-center gap-1.5 text-xs font-medium text-green-600 bg-green-100 dark:bg-green-900/30 dark:text-green-400 px-2.5 py-1 rounded-full w-fit">
+                                                <CheckCircle size={14} /> Aktif
+                                            </span>
+                                        ) : (
+                                            <span className="flex items-center gap-1.5 text-xs font-medium text-gray-500 bg-gray-100 dark:bg-gray-700 px-2.5 py-1 rounded-full w-fit">
+                                                Belum Ada
+                                            </span>
+                                        )}
+                                    </td>
+                                    <td className="py-4 px-4 text-sm font-mono text-gray-600 dark:text-gray-400">
+                                        {student.user ? student.user.email : '-'}
+                                    </td>
+                                    <td className="py-4 px-4 text-right">
+                                        {student.user_id ? (
+                                            <div className="flex justify-end gap-2">
+                                                <button
+                                                    onClick={() => resetPassword(student.id)}
+                                                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-orange-600 bg-orange-50 hover:bg-orange-100 dark:text-orange-400 dark:bg-orange-900/20 dark:hover:bg-orange-900/30 border border-orange-200 dark:border-orange-800 transition-colors"
+                                                >
+                                                    <Key size={14} /> Reset Pass
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <button
+                                                onClick={() => generateAccount(student.id)}
+                                                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-primary bg-primary/10 hover:bg-primary/20 border border-primary/20 transition-colors"
+                                            >
+                                                <UserCheck size={14} /> Buat Akun
+                                            </button>
+                                        )}
+                                    </td>
+                                </tr>
+                            )) : (
+                                <tr>
+                                    <td colSpan="5" className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                                        Belum ada data siswa.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* Pagination */}
+                <Pagination links={students.links} />
             </div>
         </AuthenticatedLayout>
     );

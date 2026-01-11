@@ -35,7 +35,7 @@ export default function AuthenticatedLayout({ user, header, children }) {
 
                 {/* Flash Messages */}
                 <div className="fixed  bottom-6 right-6 z-50 flex flex-col gap-2">
-                    {usePage().props.flash.success && (
+                    {usePage().props.flash?.success && (
                         <div className="bg-green-500 text-white px-6 py-4 rounded-xl shadow-lg shadow-green-500/20 flex items-center gap-3 animate-in fade-in slide-in-from-right duration-300">
                             <CheckCircle size={24} />
                             <div>
@@ -47,7 +47,7 @@ export default function AuthenticatedLayout({ user, header, children }) {
                             </button>
                         </div>
                     )}
-                    {usePage().props.flash.error && (
+                    {usePage().props.flash?.error && (
                         <div className="bg-red-500 text-white px-6 py-4 rounded-xl shadow-lg shadow-red-500/20 flex items-center gap-3 animate-in fade-in slide-in-from-right duration-300">
                             <AlertCircle size={24} />
                             <div>
@@ -64,10 +64,10 @@ export default function AuthenticatedLayout({ user, header, children }) {
                 {/* Footer */}
                 <footer className="mt-12 pt-6 border-t border-gray-200 flex flex-col md:flex-row justify-between items-center text-xs text-gray-500 gap-2">
                     <div>
-                        &copy; {new Date().getFullYear()} SIDADU v.1.0.0 use React v18.2.0
+                        &copy; {new Date().getFullYear()} {atob('IFNJREFEVSB2LjEuMC4wIHVzZSBSZWFjdCB2MTguMi4w')}
                     </div>
                     <div className="flex items-center gap-1">
-                        Laravel v12.46.0 made with <Heart size={12} className="text-red-500 fill-red-500" /> by Fanzhy.
+                        {atob('TGFyYXZlbCB2MTIuNDYuMCBtYWRlIHdpdGgg')} <Heart size={12} className="text-red-500 fill-red-500" /> {atob('IGJ5IEZhbnpoeS4=')}
                     </div>
                 </footer>
             </main>

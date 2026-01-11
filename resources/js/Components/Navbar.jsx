@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePage, Link } from '@inertiajs/react';
-import { Menu, Bell, LogOut, User, Sun, Moon } from 'lucide-react';
+import { Menu, Bell, LogOut, User, Sun, Moon, Activity } from 'lucide-react';
 import Dropdown from '@/Components/Dropdown';
 import { useTheme } from '@/Contexts/ThemeContext';
 
@@ -8,6 +8,30 @@ export default function Navbar({ toggleSidebar, isSidebarOpen }) {
     const { auth } = usePage().props;
     const user = auth.user;
     const { theme, toggleTheme } = useTheme();
+    const [loadTime, setLoadTime] = useState(0);
+
+    useEffect(() => {
+        if (window.performance) {
+            const updateLoadTime = () => {
+                const nav = performance.getEntriesByType("navigation")[0];
+                if (nav) {
+                    setLoadTime(Math.round(nav.loadEventEnd - nav.startTime));
+                } else {
+                    // Fallback for older browsers or initial load if timing API is slightly different
+                    const timing = performance.timing;
+                    setLoadTime(timing.loadEventEnd - timing.navigationStart);
+                }
+            };
+
+            // Check if load is already complete
+            if (document.readyState === 'complete') {
+                updateLoadTime();
+            } else {
+                window.addEventListener('load', updateLoadTime);
+                return () => window.removeEventListener('load', updateLoadTime);
+            }
+        }
+    }, []);
 
     if (!user) return null;
 
@@ -35,6 +59,12 @@ export default function Navbar({ toggleSidebar, isSidebarOpen }) {
                     >
                         {theme === 'dark' ? <Sun size={20} className="text-warning" /> : <Moon size={20} />}
                     </button>
+
+                    {/* Performance / Bandwidth Monitor */}
+                    <div className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 text-xs font-mono border border-gray-100 dark:border-gray-700" title="Page Load Time">
+                        <Activity size={14} className="text-success" />
+                        <span>{loadTime > 0 ? `${loadTime}ms` : '...'}</span>
+                    </div>
 
                     <button className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 relative">
                         <Bell size={20} />

@@ -25,25 +25,15 @@ export default function Sidebar({ isOpen, className = '' }) {
             active: url.startsWith('/dashboard')
         },
         {
-            title: 'Profil Sekolah',
+            title: 'Data Sekolah',
             icon: School,
-            route: 'profil-sekolah.index',
-            active: url.startsWith('/profil-sekolah'),
-            hidden: !hasPermission('view.sekolah')
-        },
-        {
-            title: 'Tahun Ajaran',
-            icon: Calendar,
-            route: 'tahun-ajaran.index',
-            active: url.startsWith('/tahun-ajaran'),
-            hidden: !hasPermission('view.sekolah')
-        },
-        {
-            title: 'Manajemen Kelas',
-            icon: GraduationCap,
-            route: 'kelas.index',
-            active: url.startsWith('/kelas'),
-            hidden: !hasPermission('view.kelas')
+            active: url.startsWith('/profil-sekolah') || url.startsWith('/tahun-ajaran') || url.startsWith('/kelas'),
+            hidden: !hasPermission('view.sekolah') && !hasPermission('view.kelas'),
+            submenus: [
+                { title: 'Profil Sekolah', route: 'profil-sekolah.index', hidden: !hasPermission('view.sekolah') },
+                { title: 'Tahun Ajaran', route: 'tahun-ajaran.index', hidden: !hasPermission('view.sekolah') },
+                { title: 'Manajemen Kelas', route: 'kelas.index', hidden: !hasPermission('view.kelas') },
+            ]
         },
         {
             title: 'Pengelolaan Surat',
@@ -84,8 +74,8 @@ export default function Sidebar({ isOpen, className = '' }) {
             submenus: [
                 { title: 'Data Siswa', route: 'siswa.index' },
                 { title: 'Akun Siswa', route: 'siswa.akun.index' },
-                { title: 'Kehadiran', route: '#' },
-                { title: 'Mutasi & Alumni', route: '#' },
+                { title: 'Kehadiran Siswa', route: 'absensi.index' },
+                { title: 'Mutasi & Alumni', route: 'mutasi.index' },
             ]
         },
         {
@@ -169,7 +159,7 @@ export default function Sidebar({ isOpen, className = '' }) {
 
                                 {/* Submenu Items */}
                                 <div className={`transition-all duration-300 ease-in-out border-l-2 border-dashed border-gray-200 dark:border-gray-700 ml-6 pl-2 mr-2 ${openSubmenu === index && isOpen ? 'max-h-96 opacity-100 mt-1 mb-2' : 'max-h-0 opacity-0'}`}>
-                                    {menu.submenus.map((sub, subIndex) => (
+                                    {menu.submenus.filter(sub => !sub.hidden).map((sub, subIndex) => (
                                         <Link
                                             key={subIndex}
                                             href={sub.route && sub.route !== '#' ? route(sub.route) : '#'}

@@ -27,6 +27,9 @@ class SuratTemplateController extends Controller
             'kategori' => 'nullable',
             'isi_surat' => 'required',
             'klasifikasi_surat_id' => 'nullable|exists:klasifikasi_surats,id',
+            'paper_size' => 'nullable|string',
+            'margins' => 'nullable|array',
+            'spacing' => 'nullable|array',
         ]);
 
         SuratTemplate::create($validated);
@@ -53,6 +56,9 @@ class SuratTemplateController extends Controller
             'kategori' => 'nullable',
             'isi_surat' => 'required',
             'klasifikasi_surat_id' => 'nullable|exists:klasifikasi_surats,id',
+            'paper_size' => 'nullable|string',
+            'margins' => 'nullable|array',
+            'spacing' => 'nullable|array',
         ]);
 
         $template->update($validated);

@@ -15,7 +15,13 @@ export default function Akun({ auth, gtks }) {
 
     const resetAccount = (id) => {
         if (confirm('PERINGATAN: Akun pengguna akan DIHAPUS dan DIBUAT ULANG. Password akan kembali menjadi default "12345678". Lanjutkan?')) {
-            router.post(route('gtk.akun.reset', id));
+            router.post(route('gtk.akun.recreate', id));
+        }
+    };
+
+    const resetPassword = (id) => {
+        if (confirm('Password pengguna akan direset menjadi "12345678". Lanjutkan?')) {
+            router.post(route('gtk.akun.reset-password', id));
         }
     };
 

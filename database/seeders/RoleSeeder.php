@@ -47,6 +47,13 @@ class RoleSeeder extends Seeder
 
             'view.settings',
             'edit.settings',
+            'settings.view', // Alias just in case? No, keep it clean.
+
+            // Backup & System
+            'backup.create',
+            'backup.download',
+            'backup.delete',
+            'app.update', // Explicit permission for update
 
             // Surat Specific
             'surat.view', // Can view content
@@ -75,10 +82,18 @@ class RoleSeeder extends Seeder
         $kurikulum = Role::firstOrCreate(['name' => 'Kurikulum', 'guard_name' => 'web']);
         $kurikulum->givePermissionTo(['view.dashboard', 'view.kurikulum', 'view.kelas', 'view.siswa']);
 
+        // 4. Staf (Tata Usaha)
+        $staf = Role::firstOrCreate(['name' => 'Staf', 'guard_name' => 'web']);
+        $staf->givePermissionTo([
+            'view.dashboard', 'view.surat', 'view.siswa', 'view.gtk', 'view.settings',
+            'surat.view', 'surat.create', 'surat.edit', 'surat.delete',
+            'backup.create', 'backup.download'
+        ]);
+
         // Other Roles (placeholder)
         $otherRoles = [
             'Kurikulum', 'Kesiswaan', 'Guru', 'Petugas Piket', 
-            'Walikelas', 'Staff', 'Siswa', 'Orang Tua'
+            'Walikelas', 'Siswa', 'Orang Tua'
         ];
 
         foreach ($otherRoles as $role) {

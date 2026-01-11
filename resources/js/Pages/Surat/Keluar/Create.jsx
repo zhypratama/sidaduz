@@ -1,6 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, useForm, Link } from '@inertiajs/react';
-import { Save, ArrowLeft, FileText, Settings, PenTool, Layout, ChevronDown, ChevronUp, Table } from 'lucide-react';
+import { Save, ArrowLeft, FileText, Settings, PenTool, Layout, ChevronDown, ChevronUp, Table, Info } from 'lucide-react';
 import ReactQuill, { Quill } from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import React, { useEffect, useState } from 'react';
@@ -17,6 +17,7 @@ Quill.register(Font, true);
 
 export default function Create({ auth, klasifikasis, templates, school, nextNumber, defaultFooter }) {
     const quillRef = React.useRef(null);
+    const [activeTab, setActiveTab] = useState('surat');
     const { data, setData, post, processing, errors } = useForm({
         no_surat: '',
         klasifikasi_surat_id: '',
@@ -42,8 +43,6 @@ export default function Create({ auth, klasifikasis, templates, school, nextNumb
         }
     });
 
-
-
     // Default content
     useEffect(() => {
         if (!data.isi_surat) {
@@ -59,6 +58,17 @@ export default function Create({ auth, klasifikasis, templates, school, nextNumb
         if (data.opsi_tanda_tangan === 'tte' || data.opsi_tanda_tangan === 'manual') {
             setData(d => ({ ...d, footer_text: defaultFooter || 'Dokumen ini telah ditandatangani secara elektronik yang diterbitkan oleh Balai Sertifikasi Elektronik (BSrE), BSSN.' }));
         }
+    }, [data.opsi_tanda_tangan]);
+
+    // Auto-Margin for Manual Signature (Smart Visual Editor)
+    useEffect(() => {
+        setData(d => {
+            const newBottom = d.opsi_tanda_tangan === 'manual' ? 1.2 : 0.8;
+            if (d.margins.bottom !== newBottom) {
+                return { ...d, margins: { ...d.margins, bottom: newBottom } };
+            }
+            return d;
+        });
     }, [data.opsi_tanda_tangan]);
 
 
@@ -99,60 +109,42 @@ export default function Create({ auth, klasifikasis, templates, school, nextNumb
         });
     };
 
-    // Standard Quill Toolbar Configuration
+    // Custom Sticky Toolbar Configuration
     // MEMOIZED to prevent editor re-rendering/losing focus on every keystroke
     const modules = React.useMemo(() => ({
-        toolbar: [
-            [{ 'font': ['arial', 'calibri', 'times-new-roman', 'sans-serif'] }],
-            [{ 'size': ['10px', '11px', '12px', '13px', '14px', '16px', '18px', '20px', '24px', '30px'] }],
-            ['bold', 'italic', 'underline', 'strike'],
-            [{ 'color': [] }, { 'background': [] }], // Border and Shading (Colors)
-            [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-            [{ 'indent': '-1' }, { 'indent': '+1' }],
-            [{ 'align': [] }],
-            ['link', 'image'],
-            ['clean']
-        ]
+        toolbar: {
+            container: "#toolbar-container",
+            handlers: {}
+        },
+        keyboard: {
+            bindings: {
+                tab: {
+                    key: 9,
+                    handler: function (range, context) {
+                        this.quill.insertText(range.index, '\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0'); // 8 spaces for Hanging jump
+                        return false;
+                    }
+                }
+            }
+        }
     }), []);
 
-    // CSS to fix Quill Toolbar Labels for Custom Sizes & Fonts
-    const customQuillStyles = `
-        /* FONT SIZES */
-        .ql-snow .ql-picker.ql-size .ql-picker-label::before,
-        .ql-snow .ql-picker.ql-size .ql-picker-item::before {
-            content: attr(data-value) !important;
-        }
-        .ql-snow .ql-picker.ql-size .ql-picker-label[data-value=""]::before,
-        .ql-snow .ql-picker.ql-size .ql-picker-item[data-value=""]::before {
-             content: 'Normal';
-        }
-
-        /* FONTS LABELS */
-        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="arial"]::before,
-        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="arial"]::before {
-            content: "Arial";
-            font-family: "Arial", sans-serif;
-        }
-        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="calibri"]::before,
-        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="calibri"]::before {
-            content: "Calibri";
-            font-family: "Calibri", sans-serif;
-        }
-        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="times-new-roman"]::before,
-        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="times-new-roman"]::before {
-            content: "Times New Roman";
-            font-family: "Times New Roman", serif;
-        }
-        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="sans-serif"]::before,
-        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="sans-serif"]::before {
-            content: "Sans Serif";
-        }
-
-        /* APPLY FONTS TO EDITOR CONTENT */
-        .ql-font-arial { font-family: "Arial", sans-serif; }
-        .ql-font-calibri { font-family: "Calibri", sans-serif; }
-        .ql-font-times-new-roman { font-family: "Times New Roman", serif; }
-    `;
+    // Ruler Component
+    const Ruler = ({ width }) => (
+        <div className="absolute top-[-30px] left-0 h-[25px] bg-gray-50 border-b border-gray-300 flex text-[10px] text-gray-500 select-none overflow-hidden" style={{ width: width }}>
+            {Array.from({ length: 24 }).map((_, i) => (
+                <div key={i} className="flex-shrink-0 relative" style={{ width: '1cm' }}>
+                    <span className="absolute left-[-4px] top-0">{i}</span>
+                    <div className="h-full w-full border-l border-gray-300 relative">
+                        {/* mm ticks */}
+                        <div className="absolute left-[0.25cm] bottom-0 h-[5px] w-px bg-gray-200"></div>
+                        <div className="absolute left-[0.5cm] bottom-0 h-[8px] w-px bg-gray-300"></div>
+                        <div className="absolute left-[0.75cm] bottom-0 h-[5px] w-px bg-gray-200"></div>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
 
     const isSK = React.useMemo(() => {
         const k = klasifikasis.find(item => item.id == data.klasifikasi_surat_id);
@@ -162,277 +154,320 @@ export default function Create({ auth, klasifikasis, templates, school, nextNumb
     return (
         <AuthenticatedLayout
             user={auth.user}
-            header={
-                <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-4">
-                        <Link href={route('surat-keluar.index')} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                            <ArrowLeft size={20} className="text-gray-500" />
-                        </Link>
-                        <div>
-                            <h2 className="font-bold text-2xl text-gray-800">Buat Surat Keluar</h2>
-                            <p className="text-gray-500 text-sm">Editor surat dengan penomoran otomatis & fitur lengkap</p>
-                        </div>
-                    </div>
-                </div>
-            }
+            header={< h2 className="font-semibold text-xl text-gray-800 leading-tight" > Buat Surat Keluar</h2>}
         >
             <Head title="Buat Surat Keluar" />
-            <style>{customQuillStyles}</style>
 
-            <form onSubmit={submit} className="flex flex-col xl:flex-row gap-6 h-[calc(100vh-140px)]">
+            <form onSubmit={submit} className="flex h-[calc(100vh-64px)] overflow-hidden">
+                {/* SETTINGS SIDEBAR (LEFT - TABBED) */}
+                <div className="w-80 bg-white border-r border-gray-200 flex flex-col z-30 shadow-lg flex-shrink-0">
+                    {/* Header */}
+                    <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                        <div className="flex items-center gap-2 text-primary font-bold">
+                            <FileText size={20} />
+                            <span>Pengaturan</span>
+                        </div>
+                        <button
+                            type="submit"
+                            disabled={processing}
+                            className="bg-primary hover:bg-primary/90 text-white px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1 transition-colors shadow-sm disabled:opacity-50"
+                            title="Simpan Surat"
+                        >
+                            <Save size={16} />
+                            {processing ? '...' : 'Simpan'}
+                        </button>
+                    </div>
 
-                {/* LEFT SIDEBAR - Basic Settings Only */}
-                <div className="w-full xl:w-72 flex-shrink-0 space-y-4 overflow-y-auto pr-2 custom-scrollbar pb-10">
-                    <div className="bg-white rounded-[20px] p-5 shadow-sm border border-gray-100">
-                        <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2 text-sm">
-                            <Settings className="text-primary" size={16} />
-                            Pengaturan Dasar
-                        </h3>
-                        <div className="space-y-3">
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-600 mb-1">Klasifikasi</label>
-                                <select
-                                    className="w-full rounded-lg border-gray-200 focus:ring-primary focus:border-primary text-xs py-2"
-                                    value={data.klasifikasi_surat_id}
-                                    onChange={e => setData('klasifikasi_surat_id', e.target.value)}
-                                >
-                                    <option value="">-- Pilih Klasifikasi --</option>
-                                    {klasifikasis.map(k => (
-                                        <option key={k.id} value={k.id}>{k.kode} - {k.nama}</option>
-                                    ))}
-                                </select>
-                            </div>
+                    {/* TAB NAVIGATION */}
+                    <div className="flex border-b border-gray-200 bg-white">
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab('surat')}
+                            className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'surat' ? 'border-primary text-primary bg-primary/5' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                        >
+                            Surat
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab('layout')}
+                            className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'layout' ? 'border-primary text-primary bg-primary/5' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                        >
+                            Layout
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab('otorisasi')}
+                            className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'otorisasi' ? 'border-primary text-primary bg-primary/5' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                        >
+                            Validasi
+                        </button>
+                    </div>
 
-                            {/* Template Selector (Dynamic) */}
-                            {data.klasifikasi_surat_id && (
-                                <div className="animate-in fade-in slide-in-from-top-2">
-                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Template Surat</label>
-                                    <select
-                                        className="w-full rounded-lg border-gray-200 focus:ring-primary focus:border-primary text-xs py-2 bg-blue-50/50"
-                                        onChange={(e) => {
-                                            const content = e.target.value;
-                                            if (content) {
-                                                if (confirm('Ganti isi surat dengan template terpilih? Isi saat ini akan ditimpa.')) {
-                                                    setData('isi_surat', content);
+                    {/* TAB CONTENT */}
+                    <div className="p-5 overflow-y-auto flex-1 custom-scrollbar">
+
+                        {/* TAB 1: SURAT */}
+                        {activeTab === 'surat' && (
+                            <div className="space-y-4 animate-fadeIn">
+                                {/* Template */}
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Load Template</label>
+                                    <div className="relative">
+                                        <select
+                                            onChange={(e) => {
+                                                const t = templates.find(t => t.id == e.target.value);
+                                                if (t && confirm('Isi surat akan ditimpa dengan template ini. Lanjutkan?')) {
+                                                    setData(d => ({
+                                                        ...d,
+                                                        isi_surat: t.isi_surat,
+                                                        paper_size: t.paper_size || d.paper_size,
+                                                        margins: t.margins ? JSON.parse(t.margins) : d.margins,
+                                                        spacing: t.spacing ? JSON.parse(t.spacing) : d.spacing
+                                                    }));
                                                 }
-                                            } else {
-                                                // Default
-                                                if (confirm('Kembalikan ke template kosong default?')) {
-                                                    setData('isi_surat', '<p>Dengan hormat,</p><p><br></p><p>Sehubungan dengan...</p><p><br></p><p>Demikian surat ini kami sampaikan.</p>');
-                                                }
-                                            }
-                                        }}
-                                    >
-                                        <option value="">-- Standar (Kosong) --</option>
-                                        {templates
-                                            .filter(t => t.klasifikasi_surat_id == data.klasifikasi_surat_id)
-                                            .map(t => (
-                                                <option key={t.id} value={t.isi_surat}>{t.nama}</option>
+                                                e.target.value = '';
+                                            }}
+                                            className="w-full rounded-lg border-gray-300 py-1.5 text-sm"
+                                        >
+                                            <option value="">Pilih Template...</option>
+                                            {templates.map(t => (
+                                                <option key={t.id} value={t.id}>{t.nama}</option>
                                             ))}
-                                    </select>
-                                    <p className="text-[10px] text-gray-400 mt-1 italic">
-                                        *Pilih untuk memuat isi surat otomatis
-                                    </p>
+                                        </select>
+                                    </div>
+                                    <p className="text-[10px] text-gray-400 mt-1">Mengganti isi surat dengan template tersimpan.</p>
                                 </div>
-                            )}
 
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-600 mb-1">Nomor Surat</label>
-                                <input
-                                    type="text"
-                                    className="w-full rounded-lg border-gray-200 focus:ring-primary font-mono text-xs py-2 bg-gray-50"
-                                    value={data.no_surat}
-                                    onChange={e => setData('no_surat', e.target.value)}
-                                />
-                            </div>
+                                <hr className="border-dashed border-gray-200" />
 
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-600 mb-1">Tanggal Surat</label>
-                                <input
-                                    type="date"
-                                    className="w-full rounded-lg border-gray-200 focus:ring-primary text-xs py-2"
-                                    value={data.tanggal_surat}
-                                    onChange={e => setData('tanggal_surat', e.target.value)}
-                                />
-                            </div>
-                        </div>
-                    </div>
+                                {/* Klasifikasi */}
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Klasifikasi / Kode</label>
+                                    <div className="relative">
+                                        <select
+                                            value={data.klasifikasi_surat_id}
+                                            onChange={e => setData('klasifikasi_surat_id', e.target.value)}
+                                            className="w-full rounded-lg border-gray-300 py-1.5 text-sm pr-8"
+                                        >
+                                            <option value="">Pilih Klasifikasi...</option>
+                                            {klasifikasis.map(k => (
+                                                <option key={k.id} value={k.id}>{k.kode} - {k.nama}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    {errors.klasifikasi_surat_id && <div className="text-red-500 text-xs mt-1">{errors.klasifikasi_surat_id}</div>}
+                                </div>
 
-                    <div className="bg-white rounded-[20px] p-5 shadow-sm border border-gray-100">
-                        <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2 text-sm">
-                            <PenTool className="text-purple-600" size={16} />
-                            Tanda Tangan & Footer
-                        </h3>
-                        {/* Opsi Tanda Tangan */}
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-600 mb-1">Posisi Tanggal</label>
-                            <select
-                                className="w-full rounded-lg border-gray-200 focus:ring-primary focus:border-primary text-xs py-2"
-                                value={data.posisi_tanggal}
-                                onChange={e => setData('posisi_tanggal', e.target.value)}
-                            >
-                                <option value="kanan_atas">Kanan Atas (Di bawah Kop)</option>
-                                <option value="kanan_bawah">Kanan Bawah (Di atas TTD)</option>
-                            </select>
-                        </div>
-
-                        <div className="pt-2 border-t border-gray-100">
-                            <label className="block text-xs font-semibold text-gray-600 mb-2">Jenis Tanda Tangan</label>
-                            <div className="space-y-2">
-                                {['tte', 'manual', 'polos'].map((type) => (
-                                    <label key={type} className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all ${data.opsi_tanda_tangan === type ? 'border-primary bg-primary/5' : 'border-gray-100 hover:bg-gray-50'}`}>
-                                        <input
-                                            type="radio"
-                                            name="opsi_tanda_tangan"
-                                            value={type}
-                                            checked={data.opsi_tanda_tangan === type}
-                                            onChange={() => setData('opsi_tanda_tangan', type)}
-                                            className="text-primary focus:ring-primary w-4 h-4"
-                                        />
-                                        <span className="text-xs font-medium capitalize">
-                                            {type === 'tte' ? 'Digital (QR)' : type === 'manual' ? 'Basah (Manual)' : 'Tanpa TTD'}
-                                        </span>
-                                    </label>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Footer Settings */}
-                        <div className="space-y-3">
-                            <div className="flex items-center justify-between p-2 border border-gray-100 rounded-lg">
-                                <span className="text-xs font-semibold text-gray-600">Gunakan Footer</span>
-                                <button
-                                    type="button"
-                                    onClick={() => setData('footer_enabled', !data.footer_enabled)}
-                                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${data.footer_enabled ? 'bg-primary' : 'bg-gray-200'}`}
-                                >
-                                    <span
-                                        className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${data.footer_enabled ? 'translate-x-5' : 'translate-x-1'}`}
+                                {/* Nomor Surat */}
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Nomor Surat</label>
+                                    <input
+                                        type="text"
+                                        value={data.no_surat}
+                                        onChange={e => setData('no_surat', e.target.value)}
+                                        className="w-full rounded-lg border-gray-300 py-1.5 text-sm"
                                     />
-                                </button>
-                            </div>
+                                    {errors.no_surat && <div className="text-red-500 text-xs mt-1">{errors.no_surat}</div>}
+                                </div>
 
-                            {data.footer_enabled && (
-                                <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                                    <p className="text-[10px] text-gray-500 italic">
-                                        Teks footer akan otomatis mengambil dari Pengaturan Sistem dan menyesuaikan variabel data sekolah.
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Tanggal</label>
+                                        <input
+                                            type="date"
+                                            value={data.tanggal_surat}
+                                            onChange={e => setData('tanggal_surat', e.target.value)}
+                                            className="w-full rounded-lg border-gray-300 py-1.5 text-sm"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Posisi Tanggal</label>
+                                        <select
+                                            value={data.posisi_tanggal}
+                                            onChange={e => setData('posisi_tanggal', e.target.value)}
+                                            className="w-full rounded-lg border-gray-300 py-1.5 text-sm"
+                                        >
+                                            <option value="kanan_atas">Kanan Atas</option>
+                                            <option value="kanan_bawah">Kanan Bawah</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* TAB 2: LAYOUT */}
+                        {activeTab === 'layout' && (
+                            <div className="space-y-4 animate-fadeIn">
+                                <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 mb-4">
+                                    <p className="text-xs text-blue-600 flex gap-2">
+                                        <Info size={14} className="shrink-0 mt-0.5" />
+                                        Pengaturan ini mempengaruhi hasil cetak fisik PDF.
                                     </p>
                                 </div>
-                            )}
-                        </div>
-                    </div>
 
-                    <button
-                        type="submit"
-                        disabled={processing}
-                        className="w-full bg-gray-900 text-white py-3 rounded-xl font-medium hover:bg-gray-800 transition-colors flex justify-center items-center gap-2 shadow-lg shadow-gray-900/20"
-                    >
-                        {processing ? 'Menyimpan...' : (
-                            <>
-                                <Save size={18} /> Simpan Surat
-                            </>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Kertas</label>
+                                        <select
+                                            value={data.paper_size}
+                                            onChange={e => setData('paper_size', e.target.value)}
+                                            className="w-full rounded-lg border-gray-300 py-1.5 text-sm"
+                                        >
+                                            <option value="F4">F4 (Folio)</option>
+                                            <option value="A4">A4</option>
+                                            <option value="Letter">Letter</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Spasi Baris</label>
+                                        <input
+                                            type="number"
+                                            step="0.05"
+                                            value={data.spacing?.line_height || 1.15}
+                                            onChange={e => setData(d => ({ ...d, spacing: { ...d.spacing, line_height: e.target.value } }))}
+                                            className="w-full rounded-lg border-gray-300 py-1.5 text-sm"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Margins */}
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Margin (cm)</label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div className="flex items-center gap-1">
+                                            <span className="text-[10px] w-8 text-gray-400">Atas</span>
+                                            <input type="number" step="0.1" value={data.margins.top} onChange={e => setData('margins', { ...data.margins, top: parseFloat(e.target.value) })} className="w-full rounded border-gray-300 text-xs py-1" />
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <span className="text-[10px] w-8 text-gray-400">Bawah</span>
+                                            <input type="number" step="0.1" value={data.margins.bottom} onChange={e => setData('margins', { ...data.margins, bottom: parseFloat(e.target.value) })} className="w-full rounded border-gray-300 text-xs py-1" />
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <span className="text-[10px] w-8 text-gray-400">Kiri</span>
+                                            <input type="number" step="0.1" value={data.margins.left} onChange={e => setData('margins', { ...data.margins, left: parseFloat(e.target.value) })} className="w-full rounded border-gray-300 text-xs py-1" />
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <span className="text-[10px] w-8 text-gray-400">Kanan</span>
+                                            <input type="number" step="0.1" value={data.margins.right} onChange={e => setData('margins', { ...data.margins, right: parseFloat(e.target.value) })} className="w-full rounded border-gray-300 text-xs py-1" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Footer Toggle */}
+                                <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
+                                    <input
+                                        type="checkbox"
+                                        id="footer_toggle"
+                                        checked={data.footer_enabled}
+                                        onChange={e => setData('footer_enabled', e.target.checked)}
+                                        className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
+                                    />
+                                    <label htmlFor="footer_toggle" className="text-sm text-gray-700 cursor-pointer select-none">
+                                        Cetakan Kaki Surat (Footer)
+                                    </label>
+                                </div>
+                            </div>
                         )}
-                    </button>
+
+                        {/* TAB 3: OTORISASI */}
+                        {activeTab === 'otorisasi' && (
+                            <div className="space-y-4 animate-fadeIn">
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Opsi Tanda Tangan</label>
+                                    <select
+                                        value={data.opsi_tanda_tangan}
+                                        onChange={e => setData('opsi_tanda_tangan', e.target.value)}
+                                        className="w-full rounded-lg border-gray-300 py-1.5 text-sm bg-gray-50"
+                                    >
+                                        <option value="tte">Tanda Tangan Elektronik (QR)</option>
+                                        <option value="manual">Tanda Tangan Basah (Manual)</option>
+                                        <option value="polos">Tanpa TTE (Polos)</option>
+                                    </select>
+                                    <p className="text-[10px] text-gray-400 mt-1">
+                                        {data.opsi_tanda_tangan === 'tte' && "Menampilkan QR Code validasi BSrE."}
+                                        {data.opsi_tanda_tangan === 'manual' && "Menampilkan area kosong untuk tanda tangan basah & QR validasi footer."}
+                                        {data.opsi_tanda_tangan === 'polos' && "Hanya menampilkan nama Kepala Sekolah tanpa atribut validasi."}
+                                    </p>
+                                </div>
+
+                                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                    <h5 className="text-xs font-bold text-gray-700 mb-2 border-b pb-1">Penandatangan</h5>
+                                    <div className="text-xs text-gray-600 space-y-1">
+                                        <p><span className="font-semibold">Nama:</span> {school?.kepala_sekolah || '-'}</p>
+                                        <p><span className="font-semibold">NIP:</span> {school?.nip_kepala_sekolah || '-'}</p>
+                                    </div>
+                                    <p className="text-[10px] text-gray-400 mt-2 italic">Data diambil dari Profil Sekolah.</p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
-                {/* RIGHT EDITOR AREA */}
-                <div className="flex-1 flex flex-col h-full bg-gray-100/50 rounded-[20px] border border-gray-200 overflow-hidden relative">
+                {/* EDITOR AREA */}
+                <div className="flex-1 flex flex-col bg-gray-100 relative overflow-hidden">
+                    {/* TOOLBAR */}
+                    <div id="toolbar-container" className="bg-white border-b border-gray-200 px-4 py-2 flex items-center gap-2 sticky top-0 z-20 shadow-sm flex-wrap">
+                        <span className="ql-formats">
+                            <select className="ql-font" defaultValue="times-new-roman">
+                                <option value="arial">Arial</option>
+                                <option value="calibri">Calibri</option>
+                                <option value="times-new-roman">Times New Roman</option>
+                                <option value="sans-serif">Sans Serif</option>
+                            </select>
+                            <select className="ql-size" defaultValue="12px">
+                                {['10px', '11px', '12px', '13px', '14px', '16px', '18px', '20px', '24px', '30px'].map((size) => (
+                                    <option key={size} value={size}>{size}</option>
+                                ))}
+                            </select>
+                        </span>
 
-                    {/* CUSTOM TOOLBAR HEAD - FIXED TOP */}
-                    {/* CUSTOM TOOLBAR HEAD - FIXED TOP */}
-                    <div className="bg-white border-b border-gray-200 p-2 shadow-sm z-10 flex flex-col gap-2">
-                        <div className="flex justify-between items-center px-2">
-                            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-                                <FileText size={14} /> Smart Visual Editor
+                        <div className="w-px h-6 bg-gray-200 mx-1"></div>
+
+                        <span className="ql-formats">
+                            <button className="ql-bold" />
+                            <button className="ql-italic" />
+                            <button className="ql-underline" />
+                            <button className="ql-strike" />
+                        </span>
+
+                        <div className="w-px h-6 bg-gray-200 mx-1"></div>
+
+                        <span className="ql-formats">
+                            <select className="ql-color" />
+                            <select className="ql-background" />
+                        </span>
+
+                        <div className="w-px h-6 bg-gray-200 mx-1"></div>
+
+                        <span className="ql-formats">
+                            <button className="ql-list" value="ordered" />
+                            <button className="ql-list" value="bullet" />
+                            <button className="ql-indent" value="-1" />
+                            <button className="ql-indent" value="+1" />
+                        </span>
+
+                        <div className="w-px h-6 bg-gray-200 mx-1"></div>
+
+                        <span className="ql-formats">
+                            <select className="ql-align" />
+                        </span>
+
+                        <div className="w-px h-6 bg-gray-200 mx-1"></div>
+
+                        <span className="ql-formats">
+                            <button className="ql-link" />
+                            <button className="ql-image" />
+                        </span>
+
+                        <div className="ml-auto">
+                            <span className="ql-formats">
+                                <button className="ql-clean" title="Hapus Format" />
                             </span>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    const quill = quillRef.current?.getEditor();
-                                    if (quill) {
-                                        const table = quill.getModule('table');
-                                        if (table && typeof table.insertTable === 'function') {
-                                            table.insertTable(3, 3);
-                                        } else {
-                                            // Fallback: manually insert table HTML at cursor
-                                            const range = quill.getSelection(true);
-                                            const tableHTML = '<table border="1" style="width:100%; border-collapse: collapse; border: 1px solid black;"><tbody><tr><td style="border: 1px solid black; padding: 5px;">Cell 1</td><td style="border: 1px solid black; padding: 5px;">Cell 2</td><td style="border: 1px solid black; padding: 5px;">Cell 3</td></tr><tr><td style="border: 1px solid black; padding: 5px;">Cell 4</td><td style="border: 1px solid black; padding: 5px;">Cell 5</td><td style="border: 1px solid black; padding: 5px;">Cell 6</td></tr></tbody></table><p><br/></p>';
-                                            quill.clipboard.dangerouslyPasteHTML(range.index, tableHTML);
-                                        }
-                                    }
-                                }}
-                                className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
-                            >
-                                <Table size={14} /> Insert Table
-                            </button>
-                        </div>
-
-                        {/* Layout Settings Panel (Always Visible) */}
-                        <div className="bg-gray-50/50 p-3 rounded-lg border border-gray-200 grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div>
-                                <label className="text-[10px] uppercase font-bold text-gray-400 block mb-1">Ukuran Kertas</label>
-                                <select
-                                    className="w-full text-xs rounded border-gray-200 py-1"
-                                    value={data.paper_size}
-                                    onChange={e => setData('paper_size', e.target.value)}
-                                >
-                                    <option value="F4">F4 (Folio)</option>
-                                    <option value="A4">A4</option>
-                                    <option value="Letter">Letter</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="text-[10px] uppercase font-bold text-gray-400 block mb-1">Page Margins (cm)</label>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div>
-                                        <input type="number" step="0.1" className="w-full rounded text-xs py-1 px-1 border-gray-200" value={data.margins.top} onChange={e => setData('margins', { ...data.margins, top: e.target.value })} />
-                                        <label className="text-[9px] text-gray-400 block text-center">Atas</label>
-                                    </div>
-                                    <div>
-                                        <input type="number" step="0.1" className="w-full rounded text-xs py-1 px-1 border-gray-200" value={data.margins.bottom} onChange={e => setData('margins', { ...data.margins, bottom: e.target.value })} />
-                                        <label className="text-[9px] text-gray-400 block text-center">Bawah</label>
-                                    </div>
-                                    <div>
-                                        <input type="number" step="0.1" className="w-full rounded text-xs py-1 px-1 border-gray-200" value={data.margins.left} onChange={e => setData('margins', { ...data.margins, left: e.target.value })} />
-                                        <label className="text-[9px] text-gray-400 block text-center">Kiri</label>
-                                    </div>
-                                    <div>
-                                        <input type="number" step="0.1" className="w-full rounded text-xs py-1 px-1 border-gray-200" value={data.margins.right} onChange={e => setData('margins', { ...data.margins, right: e.target.value })} />
-                                        <label className="text-[9px] text-gray-400 block text-center">Kanan</label>
-                                    </div>
-                                </div>
-                            </div>
-                            <div>
-                                <label className="text-[10px] uppercase font-bold text-gray-400 block mb-1">Section Spacing (cm)</label>
-                                <div className="grid grid-cols-2 gap-1">
-                                    <div title="Jarak Header ke Body">
-                                        <input type="number" step="0.5" className="w-full rounded text-xs py-1 px-1 border-gray-200" value={data.spacing?.header || 0} onChange={e => setData('spacing', { ...data.spacing, header: e.target.value })} />
-                                        <span className="text-[8px] text-gray-400 block text-center">Header Gap</span>
-                                    </div>
-                                    <div title="Jarak Body ke Footer">
-                                        <input type="number" step="0.5" className="w-full rounded text-xs py-1 px-1 border-gray-200" value={data.spacing?.footer || 0} onChange={e => setData('spacing', { ...data.spacing, footer: e.target.value })} />
-                                        <span className="text-[8px] text-gray-400 block text-center">Footer Gap</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div>
-                                <label className="text-[10px] uppercase font-bold text-gray-400 block mb-1">Line Spacing</label>
-                                <select
-                                    className="w-full text-xs rounded border-gray-200 py-1"
-                                    value={data.spacing?.line_height || 1.15}
-                                    onChange={e => setData('spacing', { ...data.spacing, line_height: e.target.value })}
-                                >
-                                    <option value="1.0">1.0 (Single)</option>
-                                    <option value="1.15">1.15 (Default)</option>
-                                    <option value="1.5">1.5</option>
-                                    <option value="2.0">2.0 (Double)</option>
-                                </select>
-                            </div>
                         </div>
                     </div>
 
-                    {/* Paper Area (Scrollable) */}
-                    <div className="flex-1 overflow-y-auto p-8 flex justify-center bg-gray-200 custom-scrollbar">
+                    {/* PAPER AREA (Scrollable) */}
+                    <div className="flex-1 overflow-y-auto p-12 flex justify-center bg-gray-200 custom-scrollbar relative">
                         <div
                             className="bg-white shadow-xl relative flex flex-col transition-all duration-300 ease-in-out origin-top"
                             style={{
@@ -441,9 +476,13 @@ export default function Create({ auth, klasifikasis, templates, school, nextNumb
                                 padding: `${data.margins.top}cm ${data.margins.right}cm ${data.margins.bottom}cm ${data.margins.left}cm`,
                                 fontFamily: '"Times New Roman", Times, serif',
                                 fontSize: '11pt',
+                                marginTop: '30px', // Space for Ruler
                                 lineHeight: data.spacing?.line_height || 1.15
                             }}
                         >
+                            {/* RULER */}
+                            <Ruler width="100%" />
+
                             {/* KOP SURAT */}
                             <div className="w-full flex justify-center mb-0" style={{ marginBottom: `${data.spacing?.header || 0}cm` }}>
                                 {school?.kop_surat ? (
@@ -453,105 +492,64 @@ export default function Create({ auth, klasifikasis, templates, school, nextNumb
                                         className="w-full h-auto object-contain max-h-[4cm]"
                                     />
                                 ) : (
-                                    // Default Fallback Kop
-                                    <div className="w-full border-b-4 border-double border-black pb-4 mb-2 flex items-center gap-4 select-none">
-                                        <img src={`/storage/${school?.logo}`} alt="Logo" className="h-24 w-auto object-contain" onError={(e) => e.target.style.display = 'none'} />
-                                        <div className="text-center w-full">
-                                            <h1 className="font-bold text-xl uppercase tracking-wide">Pemerintah Kabupaten Bogor</h1>
-                                            <h2 className="font-bold text-2xl uppercase tracking-wider">{school?.nama_sekolah || 'Nama Sekolah'}</h2>
-                                            <p className="text-sm italic">{school?.alamat || 'Alamat Sekolah'}</p>
-                                        </div>
+                                    <div className="w-full text-center border-b-2 border-double border-gray-800 pb-2 mb-2">
+                                        <h1 className="font-bold text-lg uppercase font-serif tracking-widest">{school?.nama_sekolah || 'NAMA SEKOLAH'}</h1>
+                                        <p className="text-sm font-serif">{school?.alamat || 'Alamat Sekolah'}</p>
                                     </div>
                                 )}
                             </div>
 
-                            {/* DATE */}
-                            {data.posisi_tanggal === 'kanan_atas' && (
-                                <div className="text-right mb-4">
-                                    Bogor, {new Date(data.tanggal_surat).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                            {/* JUDUL SK (Khusus SK) */}
+                            {isSK && (
+                                <div className="text-center mb-4">
+                                    <h2 className="font-bold underline text-md uppercase">KEPUTUSAN KEPALA {school?.nama_sekolah?.toUpperCase()}</h2>
+                                    <p className="text-sm">Nomor: {data.no_surat}</p>
+                                    <p className="font-bold uppercase mt-2">TENTANG</p>
+                                    <p className="font-bold uppercase">{data.perihal}</p>
                                 </div>
                             )}
 
-                            {/* HEADER INFO (Nomor, Lampiran, Perihal) - Tight Spacing */}
-                            {!isSK ? (
-                                <>
-                                    <div className="mb-4">
-                                        <table className="w-full border-none border-collapse">
-                                            <tbody>
-                                                <tr>
-                                                    <td className="w-24 align-top py-0 leading-tight">Nomor</td>
-                                                    <td className="w-4 align-top py-0 leading-tight">:</td>
-                                                    <td className="py-0 leading-tight font-bold">{data.no_surat || '...'}</td>
-                                                </tr>
-                                                <tr>
-                                                    <td className="align-top py-0 leading-tight">Lampiran</td>
-                                                    <td className="align-top py-0 leading-tight">:</td>
-                                                    <td className="py-0 leading-tight">
-                                                        <input
-                                                            type="text"
-                                                            className="w-full border-none p-0 h-auto text-inherit focus:ring-0 bg-transparent placeholder-gray-400 leading-tight"
-                                                            placeholder="-"
-                                                            style={{ fontFamily: 'inherit', fontSize: 'inherit' }}
-                                                            value={data.lampiran}
-                                                            onChange={e => setData('lampiran', e.target.value)}
-                                                        />
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td className="align-top py-0 leading-tight">Perihal</td>
-                                                    <td className="align-top py-0 leading-tight">:</td>
-                                                    <td className="py-0 leading-tight font-bold">
-                                                        <input
-                                                            type="text"
-                                                            className="w-full border-none p-0 h-auto font-bold focus:ring-0 bg-transparent placeholder-gray-400 leading-tight"
-                                                            placeholder="Ketik Perihal..."
-                                                            style={{ fontFamily: 'inherit', fontSize: 'inherit' }}
-                                                            value={data.perihal}
-                                                            onChange={e => setData('perihal', e.target.value)}
-                                                        />
-                                                    </td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
+                            {/* HEADER SURAT (Non-SK) */}
+                            {!isSK && (
+                                <div className="w-full grid grid-cols-[auto_1fr] gap-x-2 gap-y-0 text-left mb-6 relative">
+                                    {data.posisi_tanggal === 'kanan_atas' && (
+                                        <div className="col-span-2 text-right mb-2">
+                                            Bogor, {new Date(data.tanggal_surat).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                        </div>
+                                    )}
 
-                                    <div className="mb-4">
-                                        <p className="leading-tight">Kepada Yth.</p>
+                                    <div>Nomor</div>   <div>: {data.no_surat}</div>
+                                    <div>Lampiran</div><div>: {data.lampiran}</div>
+                                    <div>Perihal</div>
+                                    <div className="relative group">
+                                        <span className="mr-1">:</span>
                                         <input
                                             type="text"
-                                            className="w-full border-none p-0 h-auto font-bold focus:ring-0 bg-transparent placeholder-gray-400 leading-tight"
-                                            placeholder="Ketik Tujuan..."
+                                            value={data.perihal}
+                                            onChange={e => setData('perihal', e.target.value)}
+                                            placeholder="Ketik Perihal..."
+                                            className="bg-transparent border-0 border-b border-transparent focus:border-gray-400 focus:ring-0 p-0 text-gray-800 w-[90%] font-inherit placeholder:italic placeholder:text-gray-400"
                                             style={{ fontFamily: 'inherit', fontSize: 'inherit' }}
+                                        />
+                                    </div>
+
+                                    <div className="col-span-2 mt-4">
+                                        Kepada Yth.<br />
+                                        <input
+                                            type="text"
                                             value={data.tujuan}
                                             onChange={e => setData('tujuan', e.target.value)}
+                                            placeholder="Ketik Tujuan..."
+                                            className="bg-transparent border-0 border-b border-transparent focus:border-gray-400 focus:ring-0 p-0 font-bold text-gray-900 w-full placeholder:text-gray-400 placeholder:font-normal"
+                                            style={{ fontFamily: 'inherit', fontSize: 'inherit' }}
                                         />
-                                        <p className="leading-tight">di Tempat</p>
-                                    </div>
-                                </>
-                            ) : (
-                                /* SK Layout */
-                                <div className="text-center mb-8">
-                                    <h3 className="font-bold text-lg underline uppercase mb-1">SURAT KEPUTUSAN</h3>
-                                    <p className="font-bold text-lg mb-6">{data.no_surat}</p>
-
-                                    <div className="font-bold text-base space-y-1">
-                                        <p>Kepala Sekolah {school?.nama_sekolah}</p>
-                                        <p>Memutuskan</p>
-                                        <div className="flex justify-center mt-2">
-                                            <input
-                                                type="text"
-                                                className="w-full text-center border-none p-0 h-auto font-bold focus:ring-0 bg-transparent placeholder-gray-400 leading-tight uppercase"
-                                                placeholder="[PERIHAL KEPUTUSAN]"
-                                                style={{ fontFamily: 'inherit', fontSize: 'inherit' }}
-                                                value={data.perihal}
-                                                onChange={e => setData('perihal', e.target.value)}
-                                            />
-                                        </div>
+                                        <br />
+                                        di Tempat
                                     </div>
                                 </div>
                             )}
 
-                            {/* WYSIWYG Editor Body */}
+                            {/* EDITOR */}
                             <div className="flex-1 relative group min-h-[300px]" style={{ marginTop: `${data.spacing?.body || 0}cm` }}>
                                 <ReactQuill
                                     ref={quillRef}
@@ -559,21 +557,30 @@ export default function Create({ auth, klasifikasis, templates, school, nextNumb
                                     value={data.isi_surat}
                                     onChange={content => setData('isi_surat', content)}
                                     modules={modules}
-                                    placeholder="Ketik isi surat di sini..."
+                                    placeholder="Ketik isi surat disini..."
                                     className="h-full focus:outline-none"
                                 />
                             </div>
 
-                            {/* DATE BOTTOM */}
-                            {data.posisi_tanggal === 'kanan_bawah' && (
-                                <div className="text-right mt-8 mb-2">
-                                    Bogor, {new Date(data.tanggal_surat).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-                                </div>
-                            )}
-
                             {/* SIGNATURE */}
                             <div className="flex justify-end mt-4">
                                 <div className="text-center min-w-[200px]">
+                                    {/* Date: Bottom Right Position */}
+                                    {data.posisi_tanggal === 'kanan_bawah' && (
+                                        <div className="mb-2 font-serif text-[11pt]">
+                                            {isSK ? (
+                                                <>
+                                                    Ditetapkan di Bogor<br />
+                                                    pada tanggal {new Date(data.tanggal_surat).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                                </>
+                                            ) : (
+                                                <>
+                                                    Bogor, {new Date(data.tanggal_surat).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                                </>
+                                            )}
+                                        </div>
+                                    )}
+
                                     <p className="mb-1">Kepala Sekolah,</p>
 
                                     <div className="h-20 flex items-center justify-center my-1 relative">
@@ -593,6 +600,12 @@ export default function Create({ auth, klasifikasis, templates, school, nextNumb
                                                 </div>
                                             </div>
                                         )}
+
+                                        {data.opsi_tanda_tangan === 'polos' && (
+                                            <div className="z-10 h-full w-full flex items-center justify-center">
+                                                {/* Kosong / Space Only */}
+                                            </div>
+                                        )}
                                     </div>
 
                                     <p className="font-bold border-b border-black inline-block min-w-[150px] pb-1 z-20 relative">
@@ -602,7 +615,6 @@ export default function Create({ auth, klasifikasis, templates, school, nextNumb
                                 </div>
                             </div>
 
-                            {/* FOOTER */}
                             {/* FOOTER */}
                             {data.footer_enabled && (
                                 <div className={`mt-auto pt-4 border-t-2 border-double border-gray-800 text-left text-[10px] text-gray-600 font-sans italic relative ${data.opsi_tanda_tangan === 'manual' ? 'pl-24' : ''}`} style={{ marginTop: `${data.spacing?.footer || 0}cm` }}>
@@ -627,6 +639,6 @@ export default function Create({ auth, klasifikasis, templates, school, nextNumb
                     </div>
                 </div>
             </form>
-        </AuthenticatedLayout>
+        </AuthenticatedLayout >
     );
 }

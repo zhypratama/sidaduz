@@ -262,3 +262,129 @@ Aplikasi Sistem Informasi Sekolah (SISKO) berbasis web untuk manajemen Siswa, GT
 
 
 
+  - **Component**: Retained the defensive coding in `Settings/Index.jsx` as a best practice to prevent future crashes (Safe Props pattern).
+  - **Result**: Page restored successfully.
+
+**[2026-01-11 13:40]** - *Feature: Backup System & Auto-Update*
+- **Objective**: Implement Database/Storage backups and Safe Auto-Update mechanism via Git.
+- **Backend**:
+  - `SettingController::backupDatabase()`: Uses `mysqldump` to export SQL.
+  - `SettingController::backupStorage()`: Uses `ZipArchive` to compress public storage.
+  - `SettingController::updateApp()`: Executes `git pull`, `migrate --force`, and `optimize:clear`.
+- **Frontend**: Updated `Admin/Settings/Index.jsx` with dedicated Backup buttons and a "Danger Zone" Update button with `SweetAlert2` confirmation.
+- **Safety**: Added warning dialog emphasizing the risk of updating without backup.
+
+**[2026-01-11 14:00]** - *Fix: Settings Page Access Denied (403)*
+- **Issue**: Admin unable to access `/settings` route (403 Forbidden).
+- **Diagnosis**: Missing `view.settings` permission in the database for the active role.
+- **Fix**:
+  - Updated `RoleSeeder` to include `view.settings` and `edit.settings`.
+  - Ran `php artisan db:seed --class=RoleSeeder` and `permission:cache-reset`.
+  - Re-synced Admin permissions.
+
+**[2026-01-11 14:05]** - *Feature: Cache Management*
+- **Objective**: Allow admins to monitor and clear system cache/logs.
+- **Implementation**:
+  - **Stats**: `SettingController` calculates directory sizes for Views, Sessions, Logs, and Framework Cache.
+  - **Action**: Added `clearCache()` method triggering `optimize:clear` and related commands.
+  - **UI**: Added "Cache & Sampah Sistem" card in Settings > System tab exposing these stats and a "Bersihkan" button.
+
+**[2026-01-11 14:10]** - *Fix: Critical White Screen on Settings Page*
+- **Issue**: Persistent White Screen (Blank) on `/settings` despite backend returning 200 OK.
+- **Diagnosis**:
+  - **Phase 1**: Suspected undefined `system_info` props. Added optional chaining (`?.`). Failed.
+  - **Phase 2**: Suspected undefined `permissions` or `roles` array crashing `filter/map` functions. Added defensive coding (`Array.isArray`, default props). Failed.
+  - **Phase 3 (Root Cause)**: Isolated the crash to `AuthenticatedLayout.jsx` accessing `usePage().props.flash.success` without safety checks when flash data structure was incomplete or null in certain edge cases.
+- **Fix**:
+  - **Layout**: Patched `AuthenticatedLayout.jsx` to use safe access `usePage().props.flash?.success`.
+  - **Component**: Retained the defensive coding in `Settings/Index.jsx` as a best practice to prevent future crashes (Safe Props pattern).
+  - **Result**: Page restored successfully.
+
+**[2026-01-11 18:00]** - *Fix: Edit Template Surat Access*
+- **Issue**: "Edit Template" page crashing due to JSON Parse error on objects.
+- **Root Cause**: Double parsing of `margins` and `spacing` which were already array casted by Model.
+- **Fix**: Removed redundant `JSON.parse` in `Surat/Template/Create.jsx`.
+
+**[2026-01-11 18:30]** - *Refinement: Smart Visual Editor Restoration*
+- **Issue**: "Smart Visual Editor" layout appearing broken/flat.
+- **Root Cause**: Incomplete data for margins/spacing in specific DB records causing undefined CSS values.
+- **Fix**: Implemented defensive coding in `Surat/Template/Create.jsx` to merge DB data with default Margin/Spacing values using spread operator.
+
+**[2026-01-11 18:50]** - *Feature: Sticky Toolbar Implementation*
+- **Refinement**: Upgraded the Editor Toolbar in `Surat/Template/Create.jsx` and `Surat/Keluar/Create.jsx`.
+- **Change**: Moved Quill Toolbar to a dedicated `#toolbar-container` with `sticky` positioning.
+- **Result**: Toolbar now stays visible at the top of the screen when scrolling through long letters, mimicking a professional word processor.
+
+**[2026-01-11 19:00]** - *Sync: Smart Visual Editor Rules*
+- **Audit**: Verified and restored "Smart Auto-Margin" logic in `Surat/Keluar/Create.jsx`.
+- **Logic**: 
+  - When "Tanda Tangan Basah" is selected -> Bottom Margin automatically sets to **1.2 cm** to accommodate footer QR.
+  - Other modes -> Bottom Margin resets to **0.8 cm**.
+- **Consolidated**: Ensured UI consistency between Template Creator and Letter Creator.
+
+**[2026-01-11 20:00]** - *Refactor: Visual Editor Sidebar (Surat)*
+- **Objective**: Improve usability of the letter editor sidebar.
+- **Changes**:
+  - **Tabbed Interface**: Organized settings into 'Surat', 'Layout', and 'Validasi' tabs.
+  - **Cleanup**: Removed redundant 'Perihal' and 'Tujuan' inputs from sidebar (now direct-edit on canvas).
+  - **Position**: Maintained Left Sidebar preference.
+  - **Result**: Cleaner interface, easier navigation between layout and content settings.
+
+**[2026-01-11 20:10]** - *Fix: White Screen on Student Data Page*
+- **Issue**: `ReferenceError` on `Siswa/Index.jsx` due to missing state variables (`viewMode`, `search`) and handlers.
+- **Fix**:
+  - Added `useState` for `viewMode` (grid/list) and `search`.
+  - Implemented `handleSearch` and `handleDelete` functions.
+  - **Result**: Page loads correctly, grid/list toggle works.
+
+**[2026-01-11 20:15]** - *Feature: Bulk Delete Students*
+- **Objective**: Allow administrators to clear all student data (e.g., for system reset).
+- **Implementation**:
+  - **Backend**: Added `DELETE /siswa/destroy-all` route and `StudentController::destroyAll()` method.
+  - **Frontend**: Added "Hapus Semua" button with **Double Confirmation** (Alert 1 -> Alert 2) to prevent potential accidents.
+  - **Safety**: Feature only visible when data > 0.
+
+**[2026-01-11 20:20]** - *Fix: Import Error (Undefined 'email')*
+- **Issue**: Excel import failed when headers didn't match exactly (e.g., `e_mail` vs `email`).
+- **Fix**: Updated `StudentImport.php` to use null coalescing (`$row['e_mail'] ?? $row['email'] ?? null`) for safer key access.
+
+**[2026-01-11 20:30]** - *Feature: Comprehensive Student Edit Page*
+- **Objective**: Ensure ALL data fields from Dapodik (Excel) are editable.
+- **Implementation**:
+  - **UI Overhaul**: Completely rewrote `Siswa/Edit.jsx`.
+  - **Tabbed Form**: Grouped fields into:
+    1.  **Data Pribadi** (Detail Alamat, Kontak)
+    2.  **Orang Tua** (Ayah, Ibu, Wali - Detail NIK, Pekerjaan, Pendidikan)
+    3.  **Periodik** (Tinggi/Berat, Jarak ke Sekolah)
+    4.  **KIP/Bank** (Bantuan Sosial & Rekening)
+    5.  **Akademik**
+  - **Backend**: Updated `StudentController::update` validation rules to permit all 50+ fields.
+
+**[2026-01-11 20:35]** - *Feature: Student-Class Linkage*
+- **Issue**: Imported students had class names as text (`rombel`) but were not linked to the `Kelas` management module.
+- **Implementation**:
+  - **Migration**: Created `add_kelas_id_to_students_table` adding `foreignId('kelas_id')`.
+  - **Model**: Defined `belongsTo(Kelas::class)` in `Student.php`.
+  - **Import Logic**: Updated `StudentImport.php` to:
+    1.  Read `rombel_saat_ini`.
+    2.  Check `Kelas` table for matching name.
+    3.  **Auto-Create**: If class doesn't exist, create it.
+    4.  **Link**: Assign `kelas_id` to the student.
+- **Cleanup**: Removed a stray visible comment (`// Fallback display...`) that accidentally rendered in `Index.jsx`.
+
+**[2026-01-11 20:45]** - *Refactor: Unify Rombel & Kelas*
+- **Objective**: Replace temporary text-based 'Rombel' with relational `Kelas` model.
+- **Backend**:
+  - Updated `StudentController` to eager load `kelas` relationship.
+  - Passed `Kelas::all()` to Create and Edit views.
+- **Frontend**:
+  - **Index**: Display logic updated to show `student.kelas.nama` (with fallback).
+  - **Create/Edit**: Replaced text input with **Dropdown Select** for Class/Rombel.
+  - **Result**: Data consistency between Student and Class management.
+**[2026-01-11 21:00]** - *UI/UX Refinement: Student Management*
+- **NIPD Standardization**: Renamed all "NIS" references to **NIPD** (Nomor Induk Peserta Didik) across the application to match Dapodik standards.
+- **Layout Improvements**:
+  - Refactored `Index.jsx` toolbar for better responsiveness.
+  - Implemented dynamic **Pagination Limit** (10, 30, 50, 100 items).
+  - Fixed syntax errors in List view and Layout structure.
+- **GitHub Preparation**: Updated `README.md` with project specific documentation.

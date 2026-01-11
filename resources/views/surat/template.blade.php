@@ -23,6 +23,8 @@
         .nama-sekolah { font-size: 16pt; font-weight: bold; text-transform: uppercase; }
         .alamat { font-size: 10pt; }
         .content { margin-bottom: 40px; text-align: justify; }
+        .content table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+        .content table th, .content table td { border: 1px solid #000; padding: 4px; vertical-align: top; }
         .ttd-area { float: right; width: 40%; text-align: center; position: relative; }
         .footer-validation { position: fixed; bottom: 0; left: 0; right: 0; width: 100%; font-size: 9pt; border-top: 1px solid #ccc; padding-top: 5px; }
         .qr-validation { float: left; width: 60px; margin-right: 10px; }
@@ -113,14 +115,22 @@
         @endif
         <p style="margin-bottom: 5px;">Kepala Sekolah</p>
         
-        <div style="height: 80px; position: relative; display: flex; align-items: center; justify-content: center;">
-            {{-- QR Code only appears if AGREED/APPROVED --}}
+        <div style="height: 80px; width: 80px; margin: 0 auto; position: relative; display: flex; align-items: center; justify-content: center;">
             {{-- QR Code only appears if AGREED/APPROVED --}}
             @if($surat->opsi_tanda_tangan == 'tte' && $surat->status === 'approved')
                 {{-- QR CODE VALIDASI (TTE ONLY) --}}
-                <img src="data:image/svg+xml;base64, {{ base64_encode(QrCode::format('svg')->size(70)->generate(route('surat-keluar.pdf-token', $surat->token ?? 'invalid'))) }}" 
-                     style="width: 70px; height: 70px;" 
+                <img src="data:image/svg+xml;base64, {{ base64_encode(QrCode::format('svg')->size(80)->errorCorrection('H')->generate(route('surat-keluar.pdf-token', $surat->token ?? 'invalid'))) }}" 
+                     style="width: 80px; height: 80px;" 
                      alt="QR">
+
+                {{-- LOGO OVERLAY --}}
+                @if($schoolProfile->logo)
+                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 20px; height: 20px; background-color: #fff; padding: 2px; border-radius: 50%;">
+                        <img src="{{ public_path('storage/' . $schoolProfile->logo) }}" 
+                             style="width: 100%; height: 100%; object-fit: contain;" 
+                             alt="Logo">
+                    </div>
+                @endif
             @endif
 
             @if($surat->opsi_tanda_tangan == 'manual')

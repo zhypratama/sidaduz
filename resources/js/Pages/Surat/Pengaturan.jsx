@@ -147,7 +147,13 @@ export default function Pengaturan({ auth, school, footer }) {
                                     value={data.footer_text}
                                     onChange={e => setData('footer_text', e.target.value)}
                                 ></textarea>
-                                <p className="text-xs text-gray-400 mt-1">Teks ini akan muncul di bagian bawah setiap surat keluar.</p>
+                                <p className="text-xs text-gray-400 mt-1">
+                                    Variabel yang tersedia: <br />
+                                    <span className="font-mono bg-gray-200 px-1 rounded text-[10px] text-gray-700 mx-1">[NAMA_SEKOLAH]</span>
+                                    <span className="font-mono bg-gray-200 px-1 rounded text-[10px] text-gray-700 mx-1">[NAMA]</span>
+                                    <span className="font-mono bg-gray-200 px-1 rounded text-[10px] text-gray-700 mx-1">{"{token}"}</span>
+                                    <span className="font-mono bg-gray-200 px-1 rounded text-[10px] text-gray-700 mx-1">{"{hari, tanggal, jam}"}</span>
+                                </p>
                             </div>
                         </div>
                     </div>

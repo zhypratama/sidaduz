@@ -4,11 +4,11 @@ import ContentBox from '@/Components/ContentBox';
 import FormInput from '@/Components/FormInput';
 import { Save, ArrowLeft, User, Users, MapPin, School } from 'lucide-react';
 
-export default function Create({ auth }) {
+export default function Create({ auth, kelas }) {
     const { data, setData, post, processing, errors } = useForm({
         // Data Pribadi
         nama_lengkap: '',
-        nis: '',
+        nipd: '',
         nisn: '',
         nik: '',
         jenis_kelamin: 'L',
@@ -29,7 +29,8 @@ export default function Create({ auth }) {
 
         // Akademik
         status: 'aktif',
-        kelas_temp: '', // Sementara
+        kelas_id: '',
+        kelas_temp: '', // Legacy/Optional
     });
 
     const submit = (e) => {
@@ -81,11 +82,11 @@ export default function Create({ auth }) {
                                         />
                                     </div>
                                     <FormInput
-                                        label="NIS"
-                                        value={data.nis}
-                                        onChange={(e) => setData('nis', e.target.value)}
-                                        error={errors.nis}
-                                        placeholder="Nomor Induk Siswa"
+                                        label="NIPD"
+                                        value={data.nipd}
+                                        onChange={(e) => setData('nipd', e.target.value)}
+                                        error={errors.nipd}
+                                        placeholder="Nomor Induk Peserta Didik"
                                     />
                                     <FormInput
                                         label="NISN"
@@ -206,13 +207,20 @@ export default function Create({ auth }) {
                                             <option value="meninggal_dunia">Meninggal Dunia</option>
                                         </select>
                                     </div>
-                                    <FormInput
-                                        label="Kelas (Sementara)"
-                                        value={data.kelas_temp}
-                                        onChange={(e) => setData('kelas_temp', e.target.value)}
-                                        error={errors.kelas_temp}
-                                        placeholder="Contoh: 7A, 8B"
-                                    />
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kelas Saat Ini</label>
+                                        <select
+                                            value={data.kelas_id}
+                                            onChange={(e) => setData('kelas_id', e.target.value)}
+                                            className="w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 rounded-xl focus:border-primary focus:ring-primary shadow-sm transition-all"
+                                        >
+                                            <option value="">Pilih Kelas</option>
+                                            {kelas && kelas.map((k) => (
+                                                <option key={k.id} value={k.id}>{k.nama}</option>
+                                            ))}
+                                        </select>
+                                        {errors.kelas_id && <div className="text-red-500 text-xs mt-1">{errors.kelas_id}</div>}
+                                    </div>
                                 </div>
                             </ContentBox>
                         </div>
