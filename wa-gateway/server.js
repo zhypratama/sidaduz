@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const { default: makeWASocket, DisconnectReason, useMultiFileAuthState } = require('@whiskeysockets/baileys');
 const QRCode = require('qrcode');
@@ -9,15 +10,39 @@ const fs = require('fs');
 const path = require('path');
 
 const app = express();
-const PORT = 3000;
-const WEBHOOK_URL = 'http://127.0.0.1:8000/whatsapp/webhook'; // Laravel Webhook
+const PORT = process.env.PORT || 3000;
+const WEBHOOK_URL = process.env.WEBHOOK_URL || 'http://127.0.0.1:8000/whatsapp/webhook';
+const API_KEY = process.env.WA_API_KEY;
 
-app.use(cors());
+// CORS Security
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:8000').split(',');
+app.use(cors({
+    origin: function (origin, callback) {
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) === -1) {
+            return callback(new Error('CORS policy violation'), false);
+        }
+        return callback(null, true);
+    }
+}));
+
 app.use(bodyParser.json());
+
+// Auth Middleware
+const authMiddleware = (req, res, next) => {
+    const apiKey = req.headers['x-api-key'];
+    if (!apiKey || apiKey !== API_KEY) {
+        console.warn(`[Security] Unauthorized access attempt from ${req.ip}`);
+        return res.status(401).json({ status: 'error', message: 'Unauthorized' });
+    }
+    next();
+};
 
 let sock;
 let qrCodeData = null;
 let isConnected = false;
+
+// ... (Baileys Connection Logic - Unchanged)
 
 async function connectToWhatsApp() {
     const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
@@ -77,23 +102,14 @@ async function connectToWhatsApp() {
 
     sock.ev.on('creds.update', saveCreds);
 
-    // MESSAGE LISTENER (Revised for security & stability)
+    // MESSAGE LISTENER
     sock.ev.on('messages.upsert', async (m) => {
         if (m.type !== 'notify') return;
 
         for (const msg of m.messages) {
-            if (msg.key.fromMe) continue; // Don't respond to own messages
+            if (msg.key.fromMe) continue;
 
             const sender = msg.key.remoteJid;
-            const senderAlt = msg.key.remoteJidAlt;
-
-            // Allow @s.whatsapp.net OR (@lid with valid Alt)
-            const isValidUser = (sender && sender.endsWith('@s.whatsapp.net')) ||
-                (sender && sender.endsWith('@lid') && senderAlt && senderAlt.endsWith('@s.whatsapp.net'));
-
-            if (!isValidUser) continue;
-
-            const pushName = msg.pushName || 'User';
             const text = msg.message?.conversation ||
                 msg.message?.extendedTextMessage?.text ||
                 msg.message?.imageMessage?.caption ||
@@ -101,20 +117,17 @@ async function connectToWhatsApp() {
 
             if (text.trim()) {
                 console.log(`[Message] Incoming from ${sender}: ${text}`);
-                // Forward to Laravel Webhook (NON-BLOCKING to avoid deadlock)
+                // Forward to Laravel Webhook
                 const senderJid = msg.key.remoteJidAlt || msg.key.remoteJid;
 
                 axios.post(WEBHOOK_URL, {
                     sender: senderJid.replace('@s.whatsapp.net', ''),
                     message: text,
-                    name: pushName
-                }, { timeout: 10000 })
-                    .then(res => {
-                        console.log(`[Status] Webhook forwarded: ${res.status}`);
-                    })
-                    .catch(webhookError => {
-                        console.error('[Error] Webhook Forwarding Failed:', webhookError.message);
-                    });
+                    name: msg.pushName || 'User'
+                }, {
+                    timeout: 10000,
+                    headers: { 'X-API-KEY': API_KEY } // Secure Webhook too
+                }).catch(err => console.error('[Webhook Error]', err.message));
             }
         }
     });
@@ -124,7 +137,8 @@ connectToWhatsApp();
 
 // --- API ENDPOINTS ---
 
-app.get('/status', (req, res) => {
+// Secure Status Endpoint
+app.get('/status', authMiddleware, (req, res) => {
     res.json({
         connected: isConnected,
         qr: qrCodeData,
@@ -132,8 +146,8 @@ app.get('/status', (req, res) => {
     });
 });
 
-app.post('/send', async (req, res) => {
-    // If not connected, return error
+// Secure Send Endpoint
+app.post('/send', authMiddleware, async (req, res) => {
     if (!isConnected) {
         return res.status(500).json({ status: 'error', message: 'WhatsApp not connected' });
     }
@@ -155,27 +169,24 @@ app.post('/send', async (req, res) => {
     }
 });
 
-app.post('/logout', async (req, res) => {
+// Secure Logout Endpoint
+app.post('/logout', authMiddleware, async (req, res) => {
     try {
         if (sock) await sock.logout();
         res.json({ status: 'success', message: 'Logged out' });
     } catch (error) {
-        console.log('[Status] Logout error, forcing folder cleanup...');
-        // Force cleanup if logout fails
+        console.log('[Status] Logout error, forcing cleanup...');
         const authFolder = path.join(__dirname, 'auth_info_baileys');
         if (fs.existsSync(authFolder)) {
             try {
                 fs.rmSync(authFolder, { recursive: true, force: true });
-            } catch (rmError) {
-                console.error('[Error] Force cleanup failed:', rmError.message);
-            }
+            } catch (rmError) { /* ignore */ }
         }
-        // Restart connection to generate new QR
         connectToWhatsApp();
-        res.json({ status: 'success', message: 'Forced logout and session cleared' });
+        res.json({ status: 'success', message: 'Forced logout' });
     }
 });
 
 app.listen(PORT, () => {
-    console.log(`WA Gateway running on http://localhost:${PORT}`);
+    console.log(`WA Gateway running on http://localhost:${PORT} with Security Enabled`);
 });

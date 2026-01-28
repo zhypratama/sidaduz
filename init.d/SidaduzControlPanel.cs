@@ -371,7 +371,7 @@ public class SidaduzControlPanel : Form
     
     private void OpenBrowser()
     {
-        string url = phpRunning ? "http://127.0.0.1:8000" : "http://localhost/sidaduz/";
+        string url = phpRunning ? "http://127.0.0.1:8000" : "http://localhost/sidaduz/public/";
         try
         {
             Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });

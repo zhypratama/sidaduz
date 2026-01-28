@@ -137,13 +137,13 @@ class AdvancedInputSanitizer
     {
         $patterns = [
             // Shell commands
-            '/(;|\||&&|\$\(|\`)/i',
+            '/(\$\(|\`)/i', // Only block $(...) and backticks globally
             '/(\bcat\b|\bls\b|\bwhoami\b|\bpwd\b)/i',
             '/(\bwget\b|\bcurl\b|\bnc\b|\bnetcat\b)/i',
             '/(\brm\b|\bmv\b|\bcp\b|\bchmod\b)/i',
             
             // Windows commands
-            '/(\bcmd\b|\bpowershell\b|\bnet\b|\btasklist\b)/i',
+            '/(\bcmd\b|\bpowershell\b|\btasklist\b)/i',
             
             // Backticks
             '/(`[^`]*`)/i',
@@ -154,12 +154,14 @@ class AdvancedInputSanitizer
 
         return $this->checkPatterns($request, $patterns);
     }
-
     private function detectLDAPInjection(Request $request): bool
     {
         $patterns = [
-            '/(\*|\(|\)|\||&)/i',
+            // Only block LDAP specific structures, not single chars like ( or )
+            '/(\(\|)/i',  // (|
+            '/(\(&)/i',   // (&
             '/(objectClass=\*)/i',
+            '/(\badmin\b.*\bpass\b)/i', // Basic heuristic
         ];
 
         return $this->checkPatterns($request, $patterns);
@@ -178,9 +180,22 @@ class AdvancedInputSanitizer
 
     private function checkPatterns(Request $request, array $patterns): bool
     {
-        // Check all input (GET, POST, headers)
+        // Exclude sensitive fields that might contain special characters (passwords, tokens)
+        $inputs = $request->except(['password', 'password_confirmation', '_token', 'current_password', 'new_password']);
+        
+        // Check keys to catch attacks in parameter names
+        $keys = array_keys($inputs);
+        foreach ($keys as $key) {
+             foreach ($patterns as $pattern) {
+                if (preg_match($pattern, $key)) {
+                    return true;
+                }
+            }
+        }
+
+        // Check inputs + headers
         $inputs = array_merge(
-            $request->all(),
+            $inputs,
             ['user_agent' => $request->userAgent()],
             ['referer' => $request->header('referer')]
         );

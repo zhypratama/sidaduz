@@ -19,6 +19,11 @@ Route::post('/dashboard/layout', [DashboardController::class, 'updateLayout'])
     ->middleware(['auth'])
     ->name('dashboard.layout.update');
 
+// Donation Page (Authenticated)
+Route::get('/donasi', [\App\Http\Controllers\DonationController::class, 'index'])
+    ->middleware(['auth'])
+    ->name('donation');
+
 use App\Http\Controllers\SuratController;
 Route::get('/statistik', [\App\Http\Controllers\PublicOverviewController::class, 'index'])->name('public.overview');
 

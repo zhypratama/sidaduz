@@ -146,6 +146,12 @@ export default function Sidebar({ isOpen, className = '' }) {
             active: url.startsWith('/broadcast')
         },
         {
+            title: '💰 Donasi',
+            icon: Heart,
+            route: 'donation',
+            active: url.startsWith('/donasi')
+        },
+        {
             title: 'Sistem & Pengaturan',
             icon: Settings,
             active: url.startsWith('/settings'),

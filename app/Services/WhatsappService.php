@@ -18,6 +18,7 @@ class WhatsappService
         // Default to local gateway
         $this->endpoint = AppSetting::where('key', 'wa_endpoint')->value('value') ?? 'http://localhost:3000/send';
         $this->header = AppSetting::where('key', 'wa_default_message_header')->value('value') ?? "*[SIDADU NOTIFICATION]*\n\n";
+        $this->apiKey = env('WA_GATEWAY_API_KEY');
     }
 
     /**
@@ -48,7 +49,9 @@ class WhatsappService
 
         try {
             // Local Self-Hosted API Structure
-            $response = Http::post($this->endpoint, [
+            $response = Http::withHeaders([
+                'x-api-key' => $this->apiKey
+            ])->post($this->endpoint, [
                 'number' => $number,
                 'message' => $fullMessage,
             ]);
