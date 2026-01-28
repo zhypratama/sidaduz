@@ -1,0 +1,33 @@
+<IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
+
+    RewriteEngine On
+    
+    # Assets - rewrite build/ ke public/build/
+    RewriteRule ^build/(.*)$ public/build/$1 [L]
+    
+    # Favicon dan static files
+    RewriteRule ^favicon\.ico$ public/favicon.ico [L]
+    RewriteRule ^robots\.txt$ public/robots.txt [L]
+    
+    # Jika request untuk file/folder yang ada di public
+    RewriteCond %{REQUEST_URI} ^/sidaduz/public/
+    RewriteRule ^public/(.*)$ public/$1 [L]
+    
+    # Block Access to sensitive files
+    <FilesMatch "^\.env|artisan|composer\.json|package\.json|package-lock\.json|composer\.lock|gulpfile\.js|webpack\.config\.js|vite\.config\.js|README\.md|DEV_LOG\.md|PLAN_.*\.md|OPTIMIZATION_.*\.md">
+        Order allow,deny
+        Deny from all
+    </FilesMatch>
+
+    # Disable Directory Browsing
+    Options -Indexes
+
+    # Semua request lainnya ke index.php (Laravel)
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^(.*)$ index.php [L,QSA]
+</IfModule>
+

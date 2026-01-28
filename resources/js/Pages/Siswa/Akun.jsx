@@ -8,7 +8,7 @@ export default function Akun({ auth, students }) {
     const [search, setSearch] = useState('');
 
     const generateAccount = (id) => {
-        if (confirm('Akun akan dibuat otomatis dengan username = NIS/Email dan password default "12345678". Lanjutkan?')) {
+        if (confirm('Akun akan dibuat otomatis dengan username = NIPD/Email dan password default "12345678". Lanjutkan?')) {
             router.post(route('siswa.akun.store', id));
         }
     };
@@ -83,7 +83,7 @@ export default function Akun({ auth, students }) {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                         <input
                             type="text"
-                            placeholder="Cari nama atau NIS..."
+                            placeholder="Cari nama atau NIPD..."
                             className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-700 border-none rounded-xl focus:ring-2 focus:ring-primary/20 text-gray-700 dark:text-gray-200 placeholder-gray-400"
                             value={search}
                             onChange={handleSearch}
@@ -124,7 +124,8 @@ export default function Akun({ auth, students }) {
                                             </div>
                                             <div>
                                                 <div className="font-medium text-gray-800 dark:text-gray-200">{student.nama_lengkap}</div>
-                                                <div className="text-xs text-gray-500">{student.nis} / {student.nisn}</div>
+                                                {student.nipd ? <span className="text-blue-600 dark:text-blue-400 mr-1">{student.nipd}</span> : <span className="text-gray-400 mr-1">-</span>}
+                                                / {student.nisn}
                                             </div>
                                         </div>
                                     </td>

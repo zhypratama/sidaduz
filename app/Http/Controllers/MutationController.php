@@ -21,7 +21,7 @@ class MutationController extends Controller
         if ($request->has('search')) {
             $query->where(function($q) use ($request) {
                 $q->where('nama_lengkap', 'like', '%' . $request->search . '%')
-                  ->orWhere('nis', 'like', '%' . $request->search . '%');
+                  ->orWhere('nipd', 'like', '%' . $request->search . '%');
             });
         }
         
@@ -54,6 +54,6 @@ class MutationController extends Controller
 
         // We can reuse the surat layouts if available, or a specific view
         $pdf = Pdf::loadView('pdf.surat_mutasi', $data);
-        return $pdf->stream('Surat_Mutasi_' . $student->nis . '.pdf');
+        return $pdf->stream('Surat_Mutasi_' . $student->nipd . '.pdf');
     }
 }

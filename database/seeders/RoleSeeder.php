@@ -90,9 +90,17 @@ class RoleSeeder extends Seeder
             'backup.create', 'backup.download'
         ]);
 
+        // 5. Petugas Piket
+        $piket = Role::firstOrCreate(['name' => 'Petugas Piket', 'guard_name' => 'web']);
+        $piket->givePermissionTo([
+            'view.dashboard', 
+            'view.gtk', // Required to access /gtk prefix where piket routes live
+            'view.siswa', // Required to see student info during scan
+        ]);
+
         // Other Roles (placeholder)
         $otherRoles = [
-            'Kurikulum', 'Kesiswaan', 'Guru', 'Petugas Piket', 
+            'Kesiswaan', 'Guru', 
             'Walikelas', 'Siswa', 'Orang Tua'
         ];
 

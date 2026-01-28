@@ -1,6 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { Send, Plus, Search, FileText, Download, Filter, PenTool, CheckCircle, Upload, X } from 'lucide-react'; // Added Upload, X which were missing in imports too based on usage below
+import { Send, Plus, Search, FileText, Download, Filter, PenTool, CheckCircle, Upload, X, Printer } from 'lucide-react'; // Added Upload, X which were missing in imports too based on usage below
 import { useState } from 'react';
 
 export default function SuratKeluarIndex({ auth, surats }) {
@@ -66,7 +66,8 @@ export default function SuratKeluarIndex({ auth, surats }) {
                                 <th className="pb-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">No. Surat</th>
                                 <th className="pb-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Tujuan & Perihal</th>
                                 <th className="pb-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Klasifikasi</th>
-                                <th className="pb-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Tgl. Surat</th>
+                                <th className="pb-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Tgl Dibuat</th>
+                                <th className="pb-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Jam</th>
                                 <th className="pb-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
                                 <th className="pb-3 px-4 text-xs font-semibold text-gray-400 text-right uppercase tracking-wider">Aksi</th>
                             </tr>
@@ -89,8 +90,19 @@ export default function SuratKeluarIndex({ auth, surats }) {
                                                 {surat.klasifikasi?.kode}
                                             </span>
                                         </td>
-                                        <td className="py-4 px-4 text-sm text-gray-600">
-                                            {surat.tanggal_surat}
+                                        <td className="py-4 px-4 text-xs text-gray-500">
+                                            {new Date(surat.created_at).toLocaleString('id-ID', {
+                                                day: '2-digit',
+                                                month: '2-digit',
+                                                year: 'numeric'
+                                            })}
+                                        </td>
+                                        <td className="py-4 px-4 text-xs text-gray-500 font-mono">
+                                            {new Date(surat.created_at).toLocaleString('id-ID', {
+                                                hour: '2-digit',
+                                                minute: '2-digit',
+                                                hour12: false
+                                            })} WIB
                                         </td>
                                         <td className="py-4 px-4">
                                             <span className={`px-3 py-1 rounded-full text-xs font-medium ${surat.status === 'approved' ? 'bg-green-100 text-green-700' :
@@ -117,14 +129,14 @@ export default function SuratKeluarIndex({ auth, surats }) {
                                                     </button>
                                                 )}
 
-                                                {surat.status === 'approved' && (
+                                                {(surat.status === 'approved' || surat.status === 'draft') && (
                                                     <a
                                                         href={route('surat-keluar.pdf', surat.id)}
                                                         target="_blank"
-                                                        className="p-2 text-gray-400 hover:text-secondary hover:bg-secondary/10 rounded-lg transition-colors"
-                                                        title={surat.file_scan ? "Lihat Scan" : "Cetak PDF"}
+                                                        className={`p-2 rounded-lg transition-colors ${surat.status === 'approved' ? 'text-gray-400 hover:text-secondary hover:bg-secondary/10' : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50'}`}
+                                                        title={surat.file_scan ? "Lihat Scan" : (surat.status === 'approved' ? "Cetak PDF" : "Preview Draft")}
                                                     >
-                                                        <FileText size={18} />
+                                                        <Printer size={18} />
                                                     </a>
                                                 )}
 
@@ -144,13 +156,28 @@ export default function SuratKeluarIndex({ auth, surats }) {
                                                         <PenTool size={18} />
                                                     </button>
                                                 )}
+
+                                                {/* Delete Button - Admin Only */}
+                                                {auth.user.permissions.includes('surat.delete') && (
+                                                    <button
+                                                        onClick={() => {
+                                                            if (confirm('Yakin ingin menghapus surat ini? Tindakan ini tidak dapat dibatalkan.')) {
+                                                                router.delete(route('surat-keluar.destroy', surat.id));
+                                                            }
+                                                        }}
+                                                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                        title="Hapus"
+                                                    >
+                                                        <X size={18} />
+                                                    </button>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="6" className="py-12 text-center text-gray-400">
+                                    <td colSpan="7" className="py-12 text-center text-gray-400">
                                         <div className="flex flex-col items-center justify-center">
                                             <Send size={48} className="mb-2 opacity-20" />
                                             <p>Belum ada surat keluar</p>

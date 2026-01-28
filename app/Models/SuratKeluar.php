@@ -26,6 +26,8 @@ class SuratKeluar extends Model
         'footer_text',
         'file_path',
         'qrcode_path',
+        'file_scan',    // Added validation for scan upload
+        'footer_enabled', // Added validation for footer toggle
     ];
 
     protected $casts = [

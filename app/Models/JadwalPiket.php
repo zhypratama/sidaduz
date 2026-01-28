@@ -11,6 +11,8 @@ class JadwalPiket extends Model
         'hari',
         'tahun_ajaran',
         'semester',
+        'jam_mulai',
+        'jam_selesai',
     ];
 
     public function gtk()

@@ -21,23 +21,110 @@ class SettingController extends Controller
             'settings' => $settings,
             'roles' => $roles,
             'permissions' => $permissions,
-            'system_info' => [
-                'php' => phpversion(),
-                'laravel' => app()->version(),
-                'server' => $_SERVER['SERVER_SOFTWARE'] ?? 'Unknown',
-                'database' => \Illuminate\Support\Facades\DB::connection()->getPdo()->getAttribute(\PDO::ATTR_SERVER_VERSION),
-                'driver' => \Illuminate\Support\Facades\DB::connection()->getDriverName(),
+            'school_profile' => \App\Models\SchoolProfile::first(),
+            'registration' => [
+                'is_registered' => \App\Services\ActivationService::isRegistered(),
+                'data' => cache('installation_data'),
             ],
-            'cache_stats' => [
-                'views' => $this->formatSize($this->getFolderSize(storage_path('framework/views'))),
-                'sessions' => $this->formatSize($this->getFolderSize(storage_path('framework/sessions'))),
-                'logs' => $this->formatSize($this->getFolderSize(storage_path('logs'))),
-                'framework' => $this->formatSize($this->getFolderSize(storage_path('framework/cache'))),
-            ]
+            'registration' => [
+                'is_registered' => \App\Services\ActivationService::isRegistered(),
+                'data' => cache('installation_data'),
+            ],
+            'system_info' => $this->gatherSystemInfo(),
+            'cache_stats' => $this->gatherCacheStats()
         ]);
     }
 
-    // ... (updatePermission & update methods remain same)
+    public function getSystemStats()
+    {
+        return response()->json([
+            'system_info' => $this->gatherSystemInfo(),
+            'cache_stats' => $this->gatherCacheStats(),
+        ]);
+    }
+
+    private function gatherSystemInfo()
+    {
+        return [
+            'php' => phpversion(),
+            'laravel' => app()->version(),
+            'server' => $_SERVER['SERVER_SOFTWARE'] ?? 'Unknown',
+            'os' => php_uname('s') . ' ' . php_uname('r') . ' (' . php_uname('m') . ')',
+            'database' => \Illuminate\Support\Facades\DB::connection()->getPdo()->getAttribute(\PDO::ATTR_SERVER_VERSION),
+            'driver' => \Illuminate\Support\Facades\DB::connection()->getDriverName(),
+            'disk_total' => $this->formatSize(disk_total_space('.')),
+            'disk_free' => $this->formatSize(disk_free_space('.')),
+            'disk_used_percent' => round((1 - (disk_free_space('.') / disk_total_space('.'))) * 100, 1),
+            'php_memory_limit' => ini_get('memory_limit'),
+            'php_max_execution_time' => ini_get('max_execution_time') . 's',
+            'php_upload_max_filesize' => ini_get('upload_max_filesize'),
+            'php_post_max_size' => ini_get('post_max_size'),
+        ];
+    }
+
+    private function gatherCacheStats()
+    {
+        return [
+            'views' => $this->formatSize($this->getFolderSize(storage_path('framework/views'))),
+            'sessions' => $this->formatSize($this->getFolderSize(storage_path('framework/sessions'))),
+            'logs' => $this->formatSize($this->getFolderSize(storage_path('logs'))),
+            'framework' => $this->formatSize($this->getFolderSize(storage_path('framework/cache'))),
+        ];
+    }
+
+    public function update(Request $request)
+    {
+        $data = $request->validate([
+            'settings' => 'required|array',
+            'settings.*.key' => 'required|string',
+            'settings.*.value' => 'nullable',
+        ]);
+
+        foreach ($data['settings'] as $item) {
+            // Special Handler: is_online_mode (disimpan di SchoolProfile)
+            if ($item['key'] === 'is_online_mode') {
+                $profile = \App\Models\SchoolProfile::first();
+                if ($profile) {
+                    $profile->is_online_mode = ($item['value'] == 'true' || $item['value'] == '1' || $item['value'] === true);
+                    $profile->save();
+                    
+                    // Clear School Profile Cache
+                    \Illuminate\Support\Facades\Cache::forget('school_profile');
+                }
+                continue; 
+            }
+
+            // Normal Settings
+            AppSetting::updateOrCreate(
+                ['key' => $item['key']],
+                ['value' => $item['value'], 'group' => $item['group'] ?? 'umum']
+            );
+        }
+
+        return back()->with('success', 'Pengaturan berhasil disimpan');
+    }
+
+    public function updatePermission(Request $request) {
+        if (!auth()->user()->can('view.settings')) abort(403);
+        
+        $request->validate([
+             'role_id' => 'required',
+             'permission' => 'required',
+             'enabled' => 'required|boolean'
+        ]);
+        
+        $role = \Spatie\Permission\Models\Role::findById($request->role_id);
+        if($request->enabled) {
+             $role->givePermissionTo($request->permission);
+        } else {
+             $role->revokePermissionTo($request->permission);
+        }
+        
+        // Cache clear handled by Spatie usually, but good to be safe
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        
+        return back();
+    }
 
     // --- Backup & Update System ---
 
@@ -55,9 +142,9 @@ class SettingController extends Controller
         }
 
         // Database config
-        $dbName = env('DB_DATABASE');
-        $dbUser = env('DB_USERNAME');
-        $dbPass = env('DB_PASSWORD');
+        $dbName = config('database.connections.mysql.database');
+        $dbUser = config('database.connections.mysql.username');
+        $dbPass = config('database.connections.mysql.password');
         
         // Mysqldump path (adjust for XAMPP/Live)
         $dumpBinaryPath = 'C:\\xampp\\mysql\\bin\\mysqldump.exe'; // XAMPP Default
@@ -113,40 +200,19 @@ class SettingController extends Controller
         return response()->download($zip_path)->deleteFileAfterSend(true);
     }
 
-    public function updateApp()
+
+    public function checkUpdate()
     {
-        // 1. Git Pull
-        // 2. Migrate
-        // 3. Clear Cache
-        
-        $log = [];
-        
-        try {
-            // Git Pull
-            $git_output = [];
-            exec('git pull origin main 2>&1', $git_output, $git_return);
-            $log[] = ">>> GIT PULL:\n" . implode("\n", $git_output);
+        return response()->json(\App\Services\UpdaterService::checkForUpdates());
+    }
 
-            if ($git_return !== 0) {
-                 return back()->with('error', 'Git Pull Failed! Log: ' . implode("\n", $git_output));
-            }
-
-            // Migrate
-            \Illuminate\Support\Facades\Artisan::call('migrate --force');
-            $log[] = "\n>>> MIGRATE:\n" . \Illuminate\Support\Facades\Artisan::output();
-            
-            // Build Assets (Optional/Risky on shared host, skip for now or use pre-built)
-            // Ideally we run 'npm run build' but node might not be capable.
-            // Let's assume user manually builds or we commit built assets (bad practice but common for shared hosting).
-            
-            // Clear Cache
-            \Illuminate\Support\Facades\Artisan::call('optimize:clear');
-            $log[] = "\n>>> CACHE CLEAR:\n" . \Illuminate\Support\Facades\Artisan::output();
-
-            return back()->with('success', 'Update Selesai!')->with('update_log', implode("\n", $log));
-
-        } catch (\Exception $e) {
-            return back()->with('error', 'Update Gagal: ' . $e->getMessage());
+    public function performUpdate()
+    {
+        $result = \App\Services\UpdaterService::runUpdate();
+        if ($result['success']) {
+            return back()->with('success', 'Aplikasi berhasil diperbarui!')->with('update_log', $result['log']);
+        } else {
+            return back()->with('error', 'Update Gagal: ' . $result['error'])->with('update_log', $result['log']);
         }
     }
 

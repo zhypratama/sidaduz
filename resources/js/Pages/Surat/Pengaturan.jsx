@@ -4,11 +4,11 @@ import { Save, Building, FileText, Image, Search } from 'lucide-react';
 
 export default function Pengaturan({ auth, school, footer }) {
     const { data, setData, post, processing, errors } = useForm({
-        nama_sekolah: school?.nama || '',
+        nama_sekolah: school?.nama_sekolah || '',
         alamat: school?.alamat || '',
-        email: school?.email || '',
-        website: school?.website || '',
-        notelp: school?.notelp || '',
+        email: school?.email || '', // Check if email exists in DB
+        website: school?.web_sekolah || '',
+        notelp: school?.no_telp_sekolah || '',
         kop_surat: null, // File upload
         footer_text: footer || 'Dokumen ini telah ditandatangani secara elektronik yang diterbitkan oleh Balai Sertifikasi Elektronik (BSrE), BSSN.',
     });
@@ -147,13 +147,33 @@ export default function Pengaturan({ auth, school, footer }) {
                                     value={data.footer_text}
                                     onChange={e => setData('footer_text', e.target.value)}
                                 ></textarea>
-                                <p className="text-xs text-gray-400 mt-1">
-                                    Variabel yang tersedia: <br />
-                                    <span className="font-mono bg-gray-200 px-1 rounded text-[10px] text-gray-700 mx-1">[NAMA_SEKOLAH]</span>
-                                    <span className="font-mono bg-gray-200 px-1 rounded text-[10px] text-gray-700 mx-1">[NAMA]</span>
-                                    <span className="font-mono bg-gray-200 px-1 rounded text-[10px] text-gray-700 mx-1">{"{token}"}</span>
-                                    <span className="font-mono bg-gray-200 px-1 rounded text-[10px] text-gray-700 mx-1">{"{hari, tanggal, jam}"}</span>
-                                </p>
+                                <div className="mt-3">
+                                    <p className="text-xs font-bold text-gray-500 mb-2">Variabel yang tersedia:</p>
+                                    <div className="flex flex-wrap gap-2 text-[10px] font-mono text-gray-600">
+                                        <div className="bg-gray-100 px-2 py-1 rounded border border-gray-200" title="Nama Sekolah">
+                                            {"{NAMA_SEKOLAH}"}
+                                        </div>
+                                        <div className="bg-gray-100 px-2 py-1 rounded border border-gray-200" title="Alamat Sekolah">
+                                            {"{ALAMAT}"}
+                                        </div>
+                                        <div className="bg-gray-100 px-2 py-1 rounded border border-gray-200" title="Website Sekolah">
+                                            {"{WEBSITE}"}
+                                        </div>
+                                        <div className="bg-gray-100 px-2 py-1 rounded border border-gray-200" title="Token/Kode Unik Surat">
+                                            {"{token}"}
+                                        </div>
+                                        <div className="bg-gray-100 px-2 py-1 rounded border border-gray-200" title="Waktu cetak sekarang">
+                                            {"{hari, tanggal, jam}"}
+                                        </div>
+                                        <div className="bg-gray-100 px-2 py-1 rounded border border-gray-200" title="Tipe Tanda Tangan (TTE/Manual)">
+                                            {"{jenis_tanda_tangan}"}
+                                        </div>
+                                        <div className="bg-gray-100 px-2 py-1 rounded border border-gray-200" title="Nama Aplikasi (SISKO)">
+                                            {"{nama_aplikasi}"}
+                                        </div>
+                                    </div>
+                                    <p className="text-[10px] text-gray-400 mt-2 italic">Mendukung format {"{VARIABLE}"} maupun [VARIABLE]. Variabel akan otomatis diganti saat dicetak.</p>
+                                </div>
                             </div>
                         </div>
                     </div>

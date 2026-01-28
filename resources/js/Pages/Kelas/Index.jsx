@@ -128,7 +128,7 @@ export default function Index({ auth, kelas, waliKelas, tahunAjaran }) {
 
             <div className="space-y-6">
                 {/* Search Bar */}
-                <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
+                <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
                     <Search className="text-gray-400 ml-2" size={20} />
                     <input
                         type="text"
@@ -152,7 +152,7 @@ export default function Index({ auth, kelas, waliKelas, tahunAjaran }) {
                                 onDragStart={(e) => handleDragStart(e, index)}
                                 onDragEnter={(e) => handleDragEnter(e, index)}
                                 onDragEnd={handleDragEnd}
-                                className={`bg-white rounded-[24px] p-6 border transition-all duration-200 group relative
+                                className={`bg-white dark:bg-gray-800 rounded-[24px] p-6 border transition-all duration-200 group relative
                                     ${isDragging && dragItem.current === index ? 'opacity-50 scale-95 border-dashed border-primary bg-blue-50' : 'border-gray-100 hover:border-blue-200 hover:shadow-xl hover:shadow-gray-200/50 hover:-translate-y-1'}
                                     cursor-grab active:cursor-grabbing
                                 `}
@@ -172,7 +172,7 @@ export default function Index({ auth, kelas, waliKelas, tahunAjaran }) {
                                             <div>
                                                 <h3 className="font-bold text-lg text-gray-800 leading-tight">{k.nama}</h3>
                                                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide mt-1 inline-block ${k.tahun_ajaran?.is_active ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-500'}`}>
-                                                    {k.tahun_ajaran ? `${k.tahun_ajaran.periode} ${k.tahun_ajaran.semester}` : 'No TA'}
+                                                    {k.tahun_ajaran ? `${k.tahun_ajaran.tahun} ${k.tahun_ajaran.semester}` : 'No TA'}
                                                 </span>
                                             </div>
                                         </div>
@@ -211,7 +211,7 @@ export default function Index({ auth, kelas, waliKelas, tahunAjaran }) {
                         ))}
                     </div>
                 ) : (
-                    <div className="text-center py-20 bg-white rounded-[30px] border border-dashed border-gray-200">
+                    <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-[30px] border border-dashed border-gray-200">
                         <div className="bg-gray-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                             <GraduationCap className="text-gray-400" size={32} />
                         </div>
@@ -230,7 +230,7 @@ export default function Index({ auth, kelas, waliKelas, tahunAjaran }) {
             {/* Modal Form remains mostly same, just slight styling touch up */}
             {isApproveOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 animate-in zoom-in-95 duration-200">
+                    <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-md p-8 animate-in zoom-in-95 duration-200">
                         <div className="flex justify-between items-center mb-8">
                             <div>
                                 <h3 className="text-xl font-black text-gray-800">
@@ -269,7 +269,7 @@ export default function Index({ auth, kelas, waliKelas, tahunAjaran }) {
                                         <option value="">Pilih Tahun Ajaran</option>
                                         {tahunAjaran.map(ta => (
                                             <option key={ta.id} value={ta.id}>
-                                                {ta.periode} - {ta.semester}
+                                                {ta.tahun} - {ta.semester}
                                             </option>
                                         ))}
                                     </select>

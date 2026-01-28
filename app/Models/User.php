@@ -22,6 +22,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'dashboard_layout',
     ];
 
     /**
@@ -32,6 +33,8 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'two_factor_secret',
+        'two_factor_recovery_codes',
     ];
 
     /**
@@ -44,6 +47,16 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'two_factor_confirmed_at' => 'datetime',
+            'dashboard_layout' => 'array',
+            // PDP Encryption
+            'email' => 'encrypted',
+            'no_hp' => 'encrypted',
         ];
+    }
+
+    public function gtk()
+    {
+        return $this->hasOne(Gtk::class);
     }
 }

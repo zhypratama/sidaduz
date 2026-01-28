@@ -43,7 +43,7 @@ export default function Index({ auth, gtks }) {
         >
             <Head title="Manajemen GTK" />
 
-            <div className="bg-white rounded-[30px] p-6 shadow-sm shadow-gray-200/50">
+            <div className="bg-white dark:bg-gray-800 rounded-[30px] p-6 shadow-sm shadow-gray-200/50">
                 {/* Toolbar */}
                 <div className="flex flex-col md:flex-row gap-4 mb-6 justify-between">
                     <div className="relative w-full md:w-96">
@@ -62,14 +62,14 @@ export default function Index({ auth, gtks }) {
                         <div className="bg-gray-100 p-1 rounded-xl flex items-center mr-2">
                             <button
                                 onClick={() => setViewMode('grid')}
-                                className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white shadow text-primary' : 'text-gray-400 hover:text-gray-600'}`}
+                                className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-gray-800 shadow text-primary' : 'text-gray-400 hover:text-gray-600'}`}
                                 title="Tampilan Grid"
                             >
                                 <LayoutGrid size={18} />
                             </button>
                             <button
                                 onClick={() => setViewMode('list')}
-                                className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white shadow text-primary' : 'text-gray-400 hover:text-gray-600'}`}
+                                className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white dark:bg-gray-800 shadow text-primary' : 'text-gray-400 hover:text-gray-600'}`}
                                 title="Tampilan List"
                             >
                                 <List size={18} />
@@ -105,7 +105,7 @@ export default function Index({ auth, gtks }) {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {gtks.data.length > 0 ? (
                             gtks.data.map((gtk) => (
-                                <div key={gtk.id} className="bg-white border boundary-gray-100 rounded-2xl p-5 hover:shadow-md transition-shadow flex flex-col items-center text-center relative group">
+                                <div key={gtk.id} className="bg-white dark:bg-gray-800 border boundary-gray-100 rounded-2xl p-5 hover:shadow-md transition-shadow flex flex-col items-center text-center relative group">
                                     <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <Link href={route('gtk.edit', gtk.id)} className="p-2 text-gray-400 hover:text-secondary bg-white shadow-sm rounded-lg hover:shadow-md transition-all">
                                             <Edit size={16} />
@@ -168,7 +168,7 @@ export default function Index({ auth, gtks }) {
                             <tbody>
                                 {gtks.data.length > 0 ? (
                                     gtks.data.map((gtk) => (
-                                        <tr key={gtk.id} className="bg-white border-b hover:bg-gray-50 transition-colors">
+                                        <tr key={gtk.id} className="bg-white dark:bg-gray-800 border-b hover:bg-gray-50 transition-colors">
                                             <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-10 h-10 rounded-full bg-gray-100 flex-shrink-0 overflow-hidden">
@@ -236,7 +236,7 @@ export default function Index({ auth, gtks }) {
             {/* Import Modal */}
             {isImportOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md p-6">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-lg font-bold text-gray-800">Import Data GTK</h3>
                             <button onClick={() => setIsImportOpen(false)} className="text-gray-400 hover:text-gray-600">

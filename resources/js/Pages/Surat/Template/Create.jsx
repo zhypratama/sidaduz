@@ -77,7 +77,12 @@ export default function Create({ auth, template, klasifikasis }) {
         toolbar: {
             container: "#toolbar-container",
             handlers: {
-                // Custom handlers can be added here if needed
+                // Custom Handler for "Layout Table"
+                'layout-table': function () {
+                    const cursorPosition = this.quill.getSelection().index;
+                    this.quill.insertEmbed(cursorPosition, 'layout-table-block', 'true');
+                    this.quill.setSelection(cursorPosition + 1);
+                }
             }
         },
         keyboard: {
@@ -85,13 +90,43 @@ export default function Create({ auth, template, klasifikasis }) {
                 tab: {
                     key: 9,
                     handler: function (range, context) {
-                        this.quill.insertText(range.index, '\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0'); // 8 spaces for "Hanging" jump
+                        this.quill.insertText(range.index, '\u00a0\u00a0\u00a0\u00a0');
                         return false;
                     }
                 }
             }
         }
     }), []);
+
+    // Register custom Blot for Table (Basic HTML insertion workaround)
+    // For full table support we usually need `quill-better-table` or similar, 
+    // but for simple layouts we can try inserting HTML directly via clipboard/dangerouslyPasteHTML.
+
+    const insertLayoutTable = () => {
+        const quill = quillRef.current.getEditor();
+        const cursorValues = quill.getSelection();
+        const cursorPosition = cursorValues ? cursorValues.index : 0;
+
+        const tableHTML = `
+            <table style="width: 100%; border-collapse: collapse; border: none;">
+                <tbody>
+                    <tr>
+                        <td style="width: 25%; padding: 2px; vertical-align: top;">Nomor</td>
+                        <td style="width: 2%; padding: 2px; vertical-align: top;">:</td>
+                        <td style="width: 73%; padding: 2px; vertical-align: top;">...</td>
+                    </tr>
+                     <tr>
+                        <td style="width: 25%; padding: 2px; vertical-align: top;">Lampiran</td>
+                        <td style="width: 2%; padding: 2px; vertical-align: top;">:</td>
+                        <td style="width: 73%; padding: 2px; vertical-align: top;">...</td>
+                    </tr>
+                </tbody>
+            </table>
+            <br/>
+        `;
+
+        quill.clipboard.dangerouslyPasteHTML(cursorPosition, tableHTML);
+    };
 
     // Ruler Component (Internal)
     const Ruler = ({ width }) => (
@@ -297,6 +332,14 @@ export default function Create({ auth, template, klasifikasis }) {
                             <button className="ql-list" value="bullet" />
                             <button className="ql-indent" value="-1" />
                             <button className="ql-indent" value="+1" />
+                        </span>
+
+                        <div className="w-px h-6 bg-gray-200 mx-1"></div>
+
+                        <span className="ql-formats">
+                            <button type="button" onClick={insertLayoutTable} className="text-gray-600 hover:text-blue-600" title="Sisipkan Tabel Layout">
+                                <Table size={18} />
+                            </button>
                         </span>
 
                         <div className="w-px h-6 bg-gray-200 mx-1"></div>

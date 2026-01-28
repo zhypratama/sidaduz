@@ -22,7 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('surat_keluars', function (Blueprint $table) {
-            //
+            $table->dropColumn('file_scan');
         });
     }
 };

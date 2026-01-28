@@ -1,0 +1,251 @@
+import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { Head, Link, router } from '@inertiajs/react';
+import { Plus, Search, LayoutGrid, List, Edit, Trash2, Box, MapPin, Tag, CheckCircle, XCircle } from 'lucide-react';
+import Pagination from '@/Components/Pagination';
+import { useState, useEffect } from 'react';
+
+export default function Index({ auth, inventories, filters = {} }) {
+    const [viewMode, setViewMode] = useState('list'); // Default list view
+    const [search, setSearch] = useState(filters.search || '');
+
+    // Debounce Search
+    useEffect(() => {
+        const delayDebounceFn = setTimeout(() => {
+            if (search !== (filters.search || '')) {
+                router.get(route('inventory.index'), { search: search }, {
+                    preserveState: true,
+                    preserveScroll: true,
+                    replace: true
+                });
+            }
+        }, 500);
+        return () => clearTimeout(delayDebounceFn);
+    }, [search]);
+
+    const handleSearch = (e) => setSearch(e.target.value);
+
+    const handleDelete = (id) => {
+        if (confirm('Yakin ingin menghapus barang ini?')) {
+            router.delete(route('inventory.destroy', id), {
+                preserveScroll: true
+            });
+        }
+    };
+
+    return (
+        <AuthenticatedLayout
+            user={auth.user}
+            header={
+                <div className="flex justify-between items-center">
+                    <div>
+                        <h2 className="font-bold text-2xl text-gray-800">Sarana Prasarana</h2>
+                        <p className="text-gray-500 text-sm">Manajemen Inventaris Barang & Fasilitas</p>
+                    </div>
+                    <Link
+                        href={route('inventory.create')}
+                        className="bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-sm font-medium transition-colors shadow-lg shadow-primary/30"
+                    >
+                        <Plus size={18} />
+                        Tambah Barang
+                    </Link>
+                </div>
+            }
+        >
+            <Head title="Sarana Prasarana" />
+
+            <div className="bg-white dark:bg-gray-800 rounded-[30px] p-6 shadow-sm shadow-gray-200/50 dark:shadow-gray-900/50 mb-8">
+                {/* Search & Orientation */}
+                <div className="flex flex-col lg:flex-row gap-4 mb-6 justify-between items-center">
+                    <div className="relative w-full lg:w-96 order-2 lg:order-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                        <input
+                            type="text"
+                            placeholder="Cari Barang (Nama/Kode/Kategori)..."
+                            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-primary/20 text-gray-700 transition-all"
+                            value={search}
+                            onChange={handleSearch}
+                        />
+                    </div>
+
+                    <div className="flex flex-wrap gap-3 items-center justify-end w-full lg:w-auto order-1 lg:order-2">
+                        {/* View Toggle */}
+                        <div className="bg-gray-100 p-1 rounded-xl flex items-center">
+                            <button
+                                onClick={() => setViewMode('grid')}
+                                className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-primary' : 'text-gray-400 hover:text-gray-600'}`}
+                                title="Grid View"
+                            >
+                                <LayoutGrid size={18} />
+                            </button>
+                            <button
+                                onClick={() => setViewMode('list')}
+                                className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-primary' : 'text-gray-400 hover:text-gray-600'}`}
+                                title="List View"
+                            >
+                                <List size={18} />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Content View */}
+                {viewMode === 'grid' ? (
+                    /* GRID VIEW */
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {inventories.data.length > 0 ? (
+                            inventories.data.map((item) => (
+                                <div key={item.id} className="bg-white dark:bg-gray-800 border border-gray-100 rounded-2xl p-5 hover:shadow-md transition-shadow flex flex-col relative group">
+                                    <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                        <Link href={route('inventory.edit', item.id)} className="p-2 text-gray-400 hover:text-secondary bg-white shadow-sm rounded-lg hover:shadow-md transition-all">
+                                            <Edit size={16} />
+                                        </Link>
+                                        <button
+                                            onClick={() => handleDelete(item.id)}
+                                            className="p-2 text-gray-400 hover:text-red-500 bg-white shadow-sm rounded-lg"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+
+                                    <div className="w-full h-48 rounded-xl bg-gray-50 mb-4 overflow-hidden border border-gray-100 flex items-center justify-center">
+                                        {item.foto ? (
+                                            <img src={`/storage/${item.foto}`} alt={item.nama_barang} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <Box size={40} className="text-gray-300" />
+                                        )}
+                                    </div>
+
+                                    <div className="flex justify-between items-start mb-2">
+                                        <h3 className="font-bold text-gray-800 text-lg line-clamp-1" title={item.nama_barang}>
+                                            {item.nama_barang}
+                                        </h3>
+                                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${item.kondisi === 'Baik' ? 'bg-green-100 text-green-700' :
+                                            item.kondisi === 'Rusak Ringan' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
+                                            }`}>
+                                            {item.kondisi}
+                                        </span>
+                                    </div>
+                                    
+                                    <p className="text-xs text-gray-500 mb-4 font-mono">{item.kode_barang}</p>
+
+                                    <div className="flex flex-col gap-2 text-sm text-gray-600 mt-auto">
+                                        <div className="flex items-center gap-2">
+                                            <Tag size={14} className="text-gray-400" />
+                                            <span>{item.kategori}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <MapPin size={14} className="text-gray-400" />
+                                            <span>{item.lokasi}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 justify-between mt-2 pt-2 border-t border-gray-100">
+                                            <span className="font-medium">Jumlah: {item.jumlah}</span>
+                                            {item.is_public ? (
+                                                 <span className="text-green-600 text-xs flex items-center gap-1"><CheckCircle size={12}/> Publik</span>
+                                            ) : (
+                                                <span className="text-gray-400 text-xs flex items-center gap-1"><XCircle size={12}/> Privat</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="col-span-full py-12 text-center text-gray-400 bg-gray-50 rounded-2xl border-dashed border-2 border-gray-200">
+                                <div className="flex flex-col items-center justify-center">
+                                    <Box size={48} className="mb-2 opacity-20" />
+                                    <p>Belum ada data Barang</p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    /* LIST VIEW */
+                    <div className="overflow-x-auto border border-gray-100 rounded-xl">
+                        <table className="w-full text-sm text-left text-gray-500">
+                            <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-4 rounded-tl-xl text-center">No</th>
+                                    <th className="px-6 py-4">Nama Barang / Kode</th>
+                                    <th className="px-6 py-4">Kategori & Lokasi</th>
+                                    <th className="px-6 py-4">Kondisi & Jumlah</th>
+                                    <th className="px-6 py-4">Status</th>
+                                    <th className="px-6 py-4 text-center rounded-tr-xl">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {inventories.data.length > 0 ? (
+                                    inventories.data.map((item, index) => (
+                                        <tr key={item.id} className="bg-white dark:bg-gray-800 border-b hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                            <td className="px-6 py-4 text-center font-medium">{(inventories.current_page - 1) * inventories.per_page + index + 1}</td>
+                                            <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden flex items-center justify-center text-gray-400">
+                                                        {item.foto ? (
+                                                            <img src={`/storage/${item.foto}`} alt={item.nama_barang} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <Box size={20} />
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        <div className="font-bold">{item.nama_barang}</div>
+                                                        <div className="text-xs text-gray-500 font-mono">{item.kode_barang}</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex flex-col gap-1">
+                                                    <span className="font-medium">{item.kategori}</span>
+                                                    <span className="text-xs text-gray-500 flex items-center gap-1"><MapPin size={10}/> {item.lokasi}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex flex-col gap-1.5 items-start">
+                                                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${item.kondisi === 'Baik' ? 'bg-green-100 text-green-700' :
+                                                        item.kondisi === 'Rusak Ringan' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
+                                                        }`}>
+                                                        {item.kondisi}
+                                                    </span>
+                                                    <span className="text-xs font-semibold text-gray-600">Jml: {item.jumlah} unit</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                 {item.is_public ? (
+                                                     <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-medium">Publik</span>
+                                                 ) : (
+                                                     <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-xs font-medium">Privat</span>
+                                                 )}
+                                            </td>
+                                            <td className="px-6 py-4 text-center">
+                                                <div className="flex justify-center gap-2">
+                                                    <Link href={route('inventory.edit', item.id)} className="p-2 text-gray-400 hover:text-secondary bg-gray-50 hover:bg-white border border-gray-100 rounded-lg transition-all">
+                                                        <Edit size={16} />
+                                                    </Link>
+                                                    <button
+                                                        onClick={() => handleDelete(item.id)}
+                                                        className="p-2 text-gray-400 hover:text-red-500 bg-gray-50 hover:bg-white border border-gray-100 rounded-lg transition-all"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan="6" className="px-6 py-12 text-center text-gray-400">
+                                            Belum ada data Barang
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+
+                {/* Pagination */}
+                <div className="mt-8 flex justify-center">
+                    <Pagination links={inventories.links} />
+                </div>
+            </div>
+        </AuthenticatedLayout >
+    );
+}

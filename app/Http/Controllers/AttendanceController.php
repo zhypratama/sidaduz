@@ -33,7 +33,7 @@ class AttendanceController extends Controller
         if ($request->has('search')) {
             $query->whereHas('student', function ($q) use ($request) {
                 $q->where('nama_lengkap', 'like', '%' . $request->search . '%')
-                  ->orWhere('nis', 'like', '%' . $request->search . '%');
+                  ->orWhere('nipd', 'like', '%' . $request->search . '%');
             });
         }
 

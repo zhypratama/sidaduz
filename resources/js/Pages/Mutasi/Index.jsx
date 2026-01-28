@@ -78,7 +78,7 @@ export default function Index({ auth, students, filters }) {
                             <thead className="text-xs text-gray-700 uppercase bg-gray-50">
                                 <tr>
                                     <th className="px-6 py-4 rounded-tl-xl text-center">No</th>
-                                    <th className="px-6 py-4">Nama Siswa / NIS</th>
+                                    <th className="px-6 py-4">Nama Siswa / NIPD</th>
                                     <th className="px-6 py-4">Kelas Terakhir</th>
                                     <th className="px-6 py-4">Status</th>
                                     <th className="px-6 py-4 text-center rounded-tr-xl">Aksi</th>
@@ -93,7 +93,7 @@ export default function Index({ auth, students, filters }) {
                                             </td>
                                             <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
                                                 <div>{student.nama_lengkap}</div>
-                                                <div className="text-xs text-gray-500 font-mono">{student.nis} / {student.nisn}</div>
+                                                <div className="text-xs text-gray-500 font-mono">{student.nipd} / {student.nisn}</div>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <span className="bg-gray-100 px-2 py-1 rounded text-xs font-semibold text-gray-600">
@@ -102,8 +102,8 @@ export default function Index({ auth, students, filters }) {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <span className={`px-2 py-1 rounded-full text-xs font-bold ${student.status === 'mutasi_keluar' ? 'bg-yellow-100 text-yellow-700' :
-                                                        student.status === 'lulus' ? 'bg-blue-100 text-blue-700' :
-                                                            'bg-red-100 text-red-700'
+                                                    student.status === 'lulus' ? 'bg-blue-100 text-blue-700' :
+                                                        'bg-red-100 text-red-700'
                                                     }`}>
                                                     {student.status.replace('_', ' ').toUpperCase()}
                                                 </span>

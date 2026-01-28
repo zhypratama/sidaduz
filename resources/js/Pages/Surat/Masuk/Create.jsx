@@ -40,7 +40,7 @@ export default function Create({ auth }) {
             <form onSubmit={submit} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Sidebar Settings (Left) */}
                 <div className="space-y-6 lg:order-1 order-2">
-                    <div className="bg-white rounded-[30px] p-6 shadow-sm shadow-gray-200/50">
+                    <div className="bg-white dark:bg-gray-800 rounded-[30px] p-6 shadow-sm shadow-gray-200/50">
                         <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
                             <Settings className="text-secondary" size={20} />
                             Data Surat
@@ -98,7 +98,7 @@ export default function Create({ auth }) {
 
                 {/* Main Content (Right) */}
                 <div className="lg:col-span-2 space-y-6 lg:order-2 order-1">
-                    <div className="bg-white rounded-[30px] p-6 shadow-sm shadow-gray-200/50">
+                    <div className="bg-white dark:bg-gray-800 rounded-[30px] p-6 shadow-sm shadow-gray-200/50">
                         <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
                             <Mail className="text-primary" size={20} />
                             Konten & Arsip

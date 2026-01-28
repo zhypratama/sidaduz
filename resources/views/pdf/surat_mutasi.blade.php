@@ -38,9 +38,9 @@
                 <td><strong>{{ $student->nama_lengkap }}</strong></td>
             </tr>
             <tr>
-                <td>NIS / NISN</td>
+                <td>NIPD / NISN</td>
                 <td>:</td>
-                <td>{{ $student->nis }} / {{ $student->nisn }}</td>
+                <td>{{ $student->nipd }} / {{ $student->nisn }}</td>
             </tr>
             <tr>
                 <td>Tempat, Tanggal Lahir</td>

@@ -151,7 +151,7 @@ export default function Index({ auth, attendances, kelas_list, filters }) {
                                             <tr key={item.id} className="bg-white border-b hover:bg-gray-50 transition-colors">
                                                 <td className="px-6 py-4 font-medium text-gray-900 border-r border-gray-100">
                                                     <div>{item.student.nama_lengkap}</div>
-                                                    <div className="text-xs text-gray-400 font-mono">{item.student.nis}</div>
+                                                    <div className="text-xs text-gray-400 font-mono">{item.student.nipd}</div>
                                                 </td>
                                                 <td className="px-6 py-4 border-r border-gray-100">
                                                     <span className="bg-gray-100 text-gray-600 py-1 px-2 rounded text-xs font-bold">

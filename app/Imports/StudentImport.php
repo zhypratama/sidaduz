@@ -60,6 +60,7 @@ class StudentImport implements ToModel, WithHeadingRow
         // Match by NIPD, NISN, or NIK
         $match = [];
         if (!empty($row['nipd'])) $match['nipd'] = $clean($row['nipd']);
+        elseif (!empty($row['nis'])) $match['nipd'] = $clean($row['nis']); // Support NIS column mapping to NIPD
         elseif (!empty($row['nisn'])) $match['nisn'] = $clean($row['nisn']);
         elseif (!empty($row['nik_siswa'])) $match['nik'] = $clean($row['nik_siswa']);
         else $match['nama_lengkap'] = $nama;
@@ -78,7 +79,7 @@ class StudentImport implements ToModel, WithHeadingRow
 
         $student = Student::updateOrCreate($match, [
             'nama_lengkap' => $nama,
-            'nipd' => $clean($row['nipd']),
+            'nipd' => $clean($row['nipd'] ?? $row['nis']), // Use NIS if NIPD missing
             'jenis_kelamin' => substr(strtoupper($row['jenis_kelamin'] ?? 'L'), 0, 1),
             'nisn' => $clean($row['nisn']),
             'tempat_lahir' => $row['tempat_lahir'],

@@ -18,7 +18,7 @@ class SuratTemplateSeeder extends Seeder
             [
                 'nama' => 'Surat Keterangan Aktif Siswa',
                 'kategori' => 'Keterangan',
-                'isi_surat' => '<p>Yang bertanda tangan di bawah ini Kepala Sekolah SMP AL-IRSYAD BOGOR menerangkan bahwa:</p><ul><li>Nama: </li><li>NISN: </li><li>Kelas: </li></ul><p><br></p><p>Adalah benar siswa aktif di sekolah kami pada tahun ajaran ini.</p><p>Demikian surat keterangan ini dibuat untuk dipergunakan sebagaimana mestinya.</p>'
+                'isi_surat' => '<p>Yang bertanda tangan di bawah ini Kepala Sekolah [NAMA INSTITUSI SEKOLAH] menerangkan bahwa:</p><ul><li>Nama: </li><li>NISN: </li><li>Kelas: </li></ul><p><br></p><p>Adalah benar siswa aktif di sekolah kami pada tahun ajaran ini.</p><p>Demikian surat keterangan ini dibuat untuk dipergunakan sebagaimana mestinya.</p>'
             ]
         ];
 

@@ -1,2 +1,34 @@
 User-agent: *
-Disallow:
+Disallow: /admin/
+Disallow: /dashboard
+Disallow: /settings/
+Disallow: /profile
+Disallow: /nova/
+Disallow: /telescope/
+Disallow: /horizon/
+Disallow: /storage/*.key
+Disallow: /storage/*.zip
+Disallow: /storage/*.sql
+Disallow: /storage/*.backup
+Disallow: /api/
+Disallow: /bk/
+Disallow: /gtk/
+Disallow: /siswa/
+Disallow: /sekolah/
+Disallow: /laporan/
+Disallow: /surat/
+Disallow: /surat-masuk/
+Disallow: /surat-keluar/
+
+# Allow Public Resources
+Allow: /
+Allow: /login
+Allow: /register
+Allow: /form/*
+Allow: /images/
+Allow: /css/
+Allow: /js/
+Allow: /build/
+
+# Sitemap (Jika ada nanti)
+# Sitemap: https://sidadu.sekolah.sch.id/sitemap.xml

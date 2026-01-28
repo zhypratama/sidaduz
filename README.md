@@ -1,6 +1,6 @@
-# SIDADU (Sistem Database Terpadu) - SMP Al-Irsyad Bogor
+# SIDADU (Sistem Database Terpadu) - [NAMA INSTITUSI SEKOLAH]
 
-**SIDADU** adalah platform Sistem Informasi Sekolah yang dirancang untuk memodernisasi administrasi akademik dan kesiswaan di SMP Al-Irsyad Bogor. Aplikasi ini mengintegrasikan data siswa, guru (GTK), dan persuratan dalam satu dashboard yang mudah digunakan.
+**SIDADU** adalah platform Sistem Informasi Sekolah yang dirancang untuk memodernisasi administrasi akademik dan kesiswaan di [NAMA INSTITUSI SEKOLAH]. Aplikasi ini mengintegrasikan data siswa, guru (GTK), dan persuratan dalam satu dashboard yang mudah digunakan.
 
 ![Dashboard Preview](public/images/dashboard-preview.png) *(Placeholder)*
 
@@ -134,5 +134,5 @@ Kontribusi sangat diterima! Silakan fork repository ini dan kirimkan Pull Reques
 
 ## 📄 Lisensi
 
-Copyright © 2026 SMP Al-Irsyad Bogor.
+Copyright © 2026 [NAMA INSTITUSI SEKOLAH].
 All rights reserved.

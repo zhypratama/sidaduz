@@ -15,4 +15,9 @@ class SuratMasuk extends Model
         'tujuan_divisi',
         'file_scan',
     ];
+
+    public function disposisi()
+    {
+        return $this->hasMany(DisposisiSurat::class);
+    }
 }

@@ -1,9 +1,10 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, useForm, Link } from '@inertiajs/react';
-import { Save, ArrowLeft, FileText, Settings, PenTool, Layout, ChevronDown, ChevronUp, Table, Info } from 'lucide-react';
+import { Save, ArrowLeft, FileText, Settings, PenTool, Layout, ChevronDown, ChevronUp, Table, Info, X } from 'lucide-react';
 import ReactQuill, { Quill } from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import React, { useEffect, useState } from 'react';
+import Swal from 'sweetalert2';
 
 // Register Custom Font Sizes (Numbers)
 const Size = Quill.import('attributors/style/size');
@@ -15,9 +16,10 @@ const Font = Quill.import('attributors/style/font');
 Font.whitelist = ['arial', 'calibri', 'times-new-roman', 'sans-serif'];
 Quill.register(Font, true);
 
-export default function Create({ auth, klasifikasis, templates, school, nextNumber, defaultFooter }) {
+export default function Create({ auth, klasifikasis, templates, school, nextNumber, defaultFooter, serverDate }) {
     const quillRef = React.useRef(null);
     const [activeTab, setActiveTab] = useState('surat');
+    const [loadedTemplate, setLoadedTemplate] = useState(null); // Track loaded template
     const { data, setData, post, processing, errors } = useForm({
         no_surat: '',
         klasifikasi_surat_id: '',
@@ -25,7 +27,7 @@ export default function Create({ auth, klasifikasis, templates, school, nextNumb
         tujuan: '',
         perihal: '',
         isi_surat: '',
-        tanggal_surat: new Date().toISOString().split('T')[0],
+        tanggal_surat: serverDate || new Date().toISOString().split('T')[0],
         jenis_surat: 'standar',
         opsi_tanda_tangan: 'tte',
         posisi_tanggal: 'kanan_atas',
@@ -55,6 +57,7 @@ export default function Create({ auth, klasifikasis, templates, school, nextNumb
         // Use default footer for all, or allow override. 
         // User requested: "Manual Signature Footer not taking from Settings".
         // So we should use defaultFooter for Manual too.
+        // Revert: Use defaultFooter for both options so variables are preserved.
         if (data.opsi_tanda_tangan === 'tte' || data.opsi_tanda_tangan === 'manual') {
             setData(d => ({ ...d, footer_text: defaultFooter || 'Dokumen ini telah ditandatangani secara elektronik yang diterbitkan oleh Balai Sertifikasi Elektronik (BSrE), BSSN.' }));
         }
@@ -97,6 +100,13 @@ export default function Create({ auth, klasifikasis, templates, school, nextNumb
 
     const submit = (e) => {
         e.preventDefault();
+
+        // Validation Warning
+        if (!data.tujuan || !data.perihal) {
+            alert('PERINGATAN: Tujuan dan Perihal surat tidak boleh kosong!');
+            return;
+        }
+
         post(route('surat-keluar.store'), {
             onSuccess: () => {
                 // Ensure redirect happens or show alert if needed
@@ -106,6 +116,29 @@ export default function Create({ auth, klasifikasis, templates, school, nextNumb
                 console.error("Submission Errors:", errors);
                 alert("Gagal menyimpan surat. Periksa inputan Anda.");
             }
+        });
+    };
+
+    const showLicenseInfo = () => {
+        Swal.fire({
+            title: '<strong>Smart Visual Editor&trade;</strong>',
+            html: `
+                <div class="text-left text-sm">
+                    <p class="mb-2">Komponen editor ini dilindungi hak cipta.</p>
+                    <table class="w-full text-xs text-left mb-3">
+                        <tr><td class="font-bold pr-2">Licensed to:</td><td>${school?.nama_sekolah || 'Evaluation Copy'}</td></tr>
+                        <tr><td class="font-bold pr-2">License Type:</td><td>Single School License</td></tr>
+                        <tr><td class="font-bold pr-2">Version:</td><td>2.4.0 (Pro)</td></tr>
+                    </table>
+                    <p class="italic text-xs text-gray-500">
+                        Penggunaan editor ini terbatas pada instansi yang terdaftar. 
+                        Dilarang menyalin, memodifikasi, atau mendistribusikan ulang komponen ini tanpa izin tertulis.
+                    </p>
+                </div>
+            `,
+            icon: 'info',
+            confirmButtonText: 'Tutup',
+            confirmButtonColor: '#0f172a'
         });
     };
 
@@ -121,7 +154,43 @@ export default function Create({ auth, klasifikasis, templates, school, nextNumb
                 tab: {
                     key: 9,
                     handler: function (range, context) {
-                        this.quill.insertText(range.index, '\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0'); // 8 spaces for Hanging jump
+                        const quill = this.quill;
+                        const text = quill.getText();
+
+                        // Find start of current line
+                        const lineStart = text.lastIndexOf('\n', range.index - 1) + 1;
+                        if (lineStart === -1) return true; // Should not happen in normal flow
+
+                        // Find start of previous line
+                        const prevLineEnd = lineStart - 1;
+                        const prevLineStart = text.lastIndexOf('\n', prevLineEnd - 1) + 1;
+
+                        // Content of previous line
+                        if (prevLineEnd > prevLineStart) {
+                            const prevLine = text.substring(prevLineStart, prevLineEnd);
+                            const colonIndex = prevLine.indexOf(':');
+
+                            if (colonIndex > -1) {
+                                // Calculate offset in current line
+                                const currentOffset = range.index - lineStart;
+
+                                // Calculate how many spaces needed to match the colon visual position
+                                // Note: This is character-count based, which is an approximation for variable-width fonts.
+                                const targetOffset = colonIndex;
+                                let spacesNeeded = targetOffset - currentOffset;
+
+                                // Cap spacing to avoid huge jumps or negative
+                                if (spacesNeeded > 0 && spacesNeeded < 50) {
+                                    // Insert spaces
+                                    const spaceChar = '\u00a0'; // Non-breaking space
+                                    quill.insertText(range.index, spaceChar.repeat(spacesNeeded));
+                                    return false; // Prevent default
+                                }
+                            }
+                        }
+
+                        // Fallback: Default generic tab (4 spaces)
+                        quill.insertText(range.index, '\u00a0\u00a0\u00a0\u00a0');
                         return false;
                     }
                 }
@@ -224,6 +293,7 @@ export default function Create({ auth, klasifikasis, templates, school, nextNumb
                                                         margins: t.margins ? JSON.parse(t.margins) : d.margins,
                                                         spacing: t.spacing ? JSON.parse(t.spacing) : d.spacing
                                                     }));
+                                                    setLoadedTemplate(t); // Update indicator
                                                 }
                                                 e.target.value = '';
                                             }}
@@ -235,6 +305,30 @@ export default function Create({ auth, klasifikasis, templates, school, nextNumb
                                             ))}
                                         </select>
                                     </div>
+                                    {loadedTemplate && (
+                                        <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 mt-2">
+                                            <div className="flex items-center gap-2">
+                                                <Layout size={14} className="text-blue-600" />
+                                                <span className="text-xs text-blue-700 font-medium">{loadedTemplate.nama}</span>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    if (confirm('Clear template dan kembalikan ke default?')) {
+                                                        setData(d => ({
+                                                            ...d,
+                                                            isi_surat: '<p>Dengan hormat,</p><p><br></p><p>Sehubungan dengan...</p><p><br></p><p>Demikian surat ini kami sampaikan.</p>',
+                                                        }));
+                                                        setLoadedTemplate(null);
+                                                    }
+                                                }}
+                                                className="text-blue-600 hover:text-blue-800 transition-colors"
+                                                title="Clear Template"
+                                            >
+                                                <X size={14} />
+                                            </button>
+                                        </div>
+                                    )}
                                     <p className="text-[10px] text-gray-400 mt-1">Mengganti isi surat dengan template tersimpan.</p>
                                 </div>
 
@@ -264,8 +358,8 @@ export default function Create({ auth, klasifikasis, templates, school, nextNumb
                                     <input
                                         type="text"
                                         value={data.no_surat}
-                                        onChange={e => setData('no_surat', e.target.value)}
-                                        className="w-full rounded-lg border-gray-300 py-1.5 text-sm"
+                                        readOnly
+                                        className="w-full rounded-lg border-gray-300 py-1.5 text-sm bg-gray-100 text-gray-500 cursor-not-allowed"
                                     />
                                     {errors.no_surat && <div className="text-red-500 text-xs mt-1">{errors.no_surat}</div>}
                                 </div>
@@ -384,7 +478,7 @@ export default function Create({ auth, klasifikasis, templates, school, nextNumb
                                         <option value="polos">Tanpa TTE (Polos)</option>
                                     </select>
                                     <p className="text-[10px] text-gray-400 mt-1">
-                                        {data.opsi_tanda_tangan === 'tte' && "Menampilkan QR Code validasi BSrE."}
+                                        {data.opsi_tanda_tangan === 'tte' && "Menampilkan QR Code untuk validasi digital."}
                                         {data.opsi_tanda_tangan === 'manual' && "Menampilkan area kosong untuk tanda tangan basah & QR validasi footer."}
                                         {data.opsi_tanda_tangan === 'polos' && "Hanya menampilkan nama Kepala Sekolah tanpa atribut validasi."}
                                     </p>
@@ -394,7 +488,9 @@ export default function Create({ auth, klasifikasis, templates, school, nextNumb
                                     <h5 className="text-xs font-bold text-gray-700 mb-2 border-b pb-1">Penandatangan</h5>
                                     <div className="text-xs text-gray-600 space-y-1">
                                         <p><span className="font-semibold">Nama:</span> {school?.kepala_sekolah || '-'}</p>
-                                        <p><span className="font-semibold">NIP:</span> {school?.nip_kepala_sekolah || '-'}</p>
+                                        <p>
+                                            <span className="font-semibold">{school?.nip_kepala_sekolah ? 'NIP' : 'NUPTK'}:</span> {school?.nip_kepala_sekolah || school?.nuptk || '-'}
+                                        </p>
                                     </div>
                                     <p className="text-[10px] text-gray-400 mt-2 italic">Data diambil dari Profil Sekolah.</p>
                                 </div>
@@ -459,7 +555,13 @@ export default function Create({ auth, klasifikasis, templates, school, nextNumb
                             <button className="ql-image" />
                         </span>
 
-                        <div className="ml-auto">
+                        <div className="ml-auto flex items-center gap-2">
+                            <div className="hidden md:flex flex-col items-end mr-2 cursor-help" onClick={showLicenseInfo}>
+                                <span className="text-[10px] font-bold text-gray-600 uppercase tracking-wider flex items-center gap-1">
+                                    Smart Visual Editor <span className="bg-yellow-100 text-yellow-700 px-1 rounded text-[8px] border border-yellow-200">PRO</span>
+                                </span>
+                                <span className="text-[9px] text-gray-400">Licensed to {school?.nama_sekolah?.substring(0, 20) || 'Evaluation'}...</span>
+                            </div>
                             <span className="ql-formats">
                                 <button className="ql-clean" title="Hapus Format" />
                             </span>
@@ -514,7 +616,7 @@ export default function Create({ auth, klasifikasis, templates, school, nextNumb
                                 <div className="w-full grid grid-cols-[auto_1fr] gap-x-2 gap-y-0 text-left mb-6 relative">
                                     {data.posisi_tanggal === 'kanan_atas' && (
                                         <div className="col-span-2 text-right mb-2">
-                                            Bogor, {new Date(data.tanggal_surat).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                            {school?.kota || 'Bogor'}, {new Date(data.tanggal_surat).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                                         </div>
                                     )}
 
@@ -550,7 +652,7 @@ export default function Create({ auth, klasifikasis, templates, school, nextNumb
                             )}
 
                             {/* EDITOR */}
-                            <div className="flex-1 relative group min-h-[300px]" style={{ marginTop: `${data.spacing?.body || 0}cm` }}>
+                            <div className="relative group min-h-[300px]" style={{ marginTop: `${data.spacing?.body || 0}cm` }}>
                                 <ReactQuill
                                     ref={quillRef}
                                     theme="snow"
@@ -564,24 +666,24 @@ export default function Create({ auth, klasifikasis, templates, school, nextNumb
 
                             {/* SIGNATURE */}
                             <div className="flex justify-end mt-4">
-                                <div className="text-center min-w-[200px]">
+                                <div className="text-center min-w-[200px] leading-tight">
                                     {/* Date: Bottom Right Position */}
                                     {data.posisi_tanggal === 'kanan_bawah' && (
-                                        <div className="mb-2 font-serif text-[11pt]">
+                                        <div className="mb-0 font-serif text-[11pt]">
                                             {isSK ? (
                                                 <>
-                                                    Ditetapkan di Bogor<br />
+                                                    Ditetapkan di {school?.kota || 'Bogor'}<br />
                                                     pada tanggal {new Date(data.tanggal_surat).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                                                 </>
                                             ) : (
                                                 <>
-                                                    Bogor, {new Date(data.tanggal_surat).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                                    {school?.kota || 'Bogor'}, {new Date(data.tanggal_surat).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                                                 </>
                                             )}
                                         </div>
                                     )}
 
-                                    <p className="mb-1">Kepala Sekolah,</p>
+                                    <p className="mb-0">Kepala Sekolah,</p>
 
                                     <div className="h-20 flex items-center justify-center my-1 relative">
                                         {/* QR Code Validation - ONLY FOR TTE */}
@@ -611,9 +713,14 @@ export default function Create({ auth, klasifikasis, templates, school, nextNumb
                                     <p className="font-bold border-b border-black inline-block min-w-[150px] pb-1 z-20 relative">
                                         {school?.kepala_sekolah || '...'}
                                     </p>
-                                    <p>NIP. {school?.nip_kepala_sekolah || '-'}</p>
+                                    <p>
+                                        {school?.nip_kepala_sekolah ? `NIP. ${school.nip_kepala_sekolah}` : `NUPTK. ${school?.nuptk || '-'}`}
+                                    </p>
                                 </div>
                             </div>
+
+                            {/* Spacer to push Footer to bottom */}
+                            <div className="flex-1"></div>
 
                             {/* FOOTER */}
                             {data.footer_enabled && (
@@ -626,11 +733,15 @@ export default function Create({ auth, klasifikasis, templates, school, nextNumb
                                         </div>
                                     )}
 
-                                    <p className="whitespace-pre-line">
+                                    <p className="whitespace-pre-line text-[10px]">
                                         {data.footer_text
-                                            .replace(/\[NAMA_SEKOLAH\]|\[NAMA\]/g, school?.nama_sekolah || 'SMP Al-Irsyad Bogor')
-                                            .replace(/{token}/g, btoa(data.no_surat + school?.id).substring(0, 16)) // Simple simulation
-                                            .replace(/{hari, tanggal, jam}/g, new Date().toLocaleString('id-ID'))
+                                            .replace(/\[NAMA_SEKOLAH\]|{NAMA_SEKOLAH}|\[NAMA\]|{NAMA}/g, school?.nama_sekolah || 'Nama Sekolah')
+                                            .replace(/\[ALAMAT\]|{ALAMAT}/g, school?.alamat || 'Alamat Sekolah')
+                                            .replace(/\[WEBSITE\]|{WEBSITE}/g, school?.web_sekolah || 'Website')
+                                            .replace(/\[token\]|{token}/g, btoa(data.no_surat + school?.id).substring(0, 16)) // Sim
+                                            .replace(/\[hari, tanggal, jam\]|{hari, tanggal, jam}/g, new Date().toLocaleString('id-ID'))
+                                            .replace(/{jenis_tanda_tangan}/g, data.opsi_tanda_tangan === 'tte' ? 'Tanda Tangan Elektronik' : 'Manual')
+                                            .replace(/{nama_aplikasi}/g, 'SISKO')
                                         }
                                     </p>
                                 </div>

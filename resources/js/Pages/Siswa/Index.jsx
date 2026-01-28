@@ -80,7 +80,7 @@ export default function Index({ auth, students, filters = {} }) {
         >
             <Head title="Manajemen Siswa" />
 
-            <div className="bg-white rounded-[30px] p-6 shadow-sm shadow-gray-200/50 mb-8">
+            <div className="bg-white dark:bg-gray-800 rounded-[30px] p-6 shadow-sm shadow-gray-200/50 dark:shadow-gray-900/50 mb-8">
                 {/* Search & Orientation */}
                 <div className="flex flex-col lg:flex-row gap-4 mb-6 justify-between items-center">
                     <div className="relative w-full lg:w-96 order-2 lg:order-1">
@@ -161,7 +161,7 @@ export default function Index({ auth, students, filters = {} }) {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {students.data.length > 0 ? (
                         students.data.map((student) => (
-                            <div key={student.id} className="bg-white border boundary-gray-100 rounded-2xl p-5 hover:shadow-md transition-shadow flex flex-col items-center text-center relative group">
+                            <div key={student.id} className="bg-white dark:bg-gray-800 border boundary-gray-100 rounded-2xl p-5 hover:shadow-md transition-shadow flex flex-col items-center text-center relative group">
                                 <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <Link href={route('siswa.edit', student.id)} className="p-2 text-gray-400 hover:text-secondary bg-white shadow-sm rounded-lg hover:shadow-md transition-all">
                                         <Edit size={16} />
@@ -232,7 +232,7 @@ export default function Index({ auth, students, filters = {} }) {
                         <tbody>
                             {students.data.length > 0 ? (
                                 students.data.map((student, index) => (
-                                    <tr key={student.id} className="bg-white border-b hover:bg-gray-50 transition-colors">
+                                    <tr key={student.id} className="bg-white dark:bg-gray-800 border-b hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                                         <td className="px-6 py-4 text-center font-medium">{(students.current_page - 1) * students.per_page + index + 1}</td>
                                         <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
                                             <div className="flex items-center gap-3">
@@ -302,7 +302,7 @@ export default function Index({ auth, students, filters = {} }) {
             {
                 isImportModalOpen && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                        <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md p-6 shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
                             <div className="flex justify-between items-center mb-6">
                                 <div>
                                     <h3 className="text-lg font-bold text-gray-900">Import Data Siswa</h3>

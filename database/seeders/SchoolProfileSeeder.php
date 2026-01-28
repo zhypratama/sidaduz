@@ -13,13 +13,13 @@ class SchoolProfileSeeder extends Seeder
     public function run(): void
     {
         SchoolProfile::create([
-            'nama_sekolah' => 'SMP Al-Irsyad Bogor',
-            'npsn' => '20220397',
-            'nama_kepala_sekolah' => 'Muhammad, S.Pd, M.Pd.',
-            'alamat_sekolah' => 'Jl. Raya Bogor KM. 40, Cibinong, Bogor',
-            'email_sekolah' => 'info@smpalirsyadbogor.sch.id',
-            'no_telp_sekolah' => '021-8751234',
-            'web_sekolah' => 'https://smpalirsyadbogor.sch.id',
+            'nama_sekolah' => '[NAMA INSTITUSI SEKOLAH]',
+            'npsn' => '00000000',
+            'nama_kepala_sekolah' => 'Nama Kepala Sekolah, S.Pd.',
+            'alamat_sekolah' => 'Alamat Lengkap Sekolah',
+            'email_sekolah' => 'admin@sekolah.id',
+            'no_telp_sekolah' => '021-000000',
+            'web_sekolah' => 'https://sekolah.id',
             'jam_masuk' => '07:00',
             'jam_pulang' => '15:00',
         ]);

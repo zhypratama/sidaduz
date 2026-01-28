@@ -72,12 +72,16 @@
     @else
         {{-- INFO SURAT --}}
         <div style="margin-bottom: 20px;">
+            {{-- Date moved 1 line above "Nomor" and added City --}}
+            <div style="text-align: right; margin-bottom: 5px;">
+                {{ $schoolProfile->kota ?? 'Bogor' }}, {{ \Carbon\Carbon::parse($surat->tanggal_surat)->locale('id')->translatedFormat('d F Y') }}
+            </div>
+
             <table width="100%">
                 <tr>
                     <td width="15%">Nomor</td>
                     <td width="2%">:</td>
-                    <td width="48%">{{ $surat->no_surat }}</td>
-                    <td width="35%" align="right">{{ \Carbon\Carbon::parse($surat->tanggal_surat)->translatedFormat('d F Y') }}</td>
+                    <td width="83%">{{ $surat->no_surat }}</td>
                 </tr>
                 <tr>
                     <td>Lampiran</td>
@@ -109,39 +113,65 @@
     {{-- TANDA TANGAN & QR --}}
     <div class="ttd-area">
         @if($surat->posisi_tanggal == 'kanan_bawah' || ($surat->klasifikasi && $surat->klasifikasi->kode === 'SK'))
-            <p style="margin-bottom: 5px;">Bogor, {{ \Carbon\Carbon::parse($surat->tanggal_surat)->translatedFormat('d F Y') }}</p>
+            <p style="margin: 0; line-height: 1.2;">{{ $schoolProfile->kota ?? 'Bogor' }}, {{ \Carbon\Carbon::parse($surat->tanggal_surat)->locale('id')->translatedFormat('d F Y') }}</p>
         @else
-            <p style="margin-bottom: 5px;">Mengetahui,</p>
+            <p style="margin: 0; line-height: 1.2;">Mengetahui,</p>
         @endif
-        <p style="margin-bottom: 5px;">Kepala Sekolah</p>
+        <p style="margin: 0; line-height: 1.2;">Kepala Sekolah</p>
         
-        <div style="height: 80px; width: 80px; margin: 0 auto; position: relative; display: flex; align-items: center; justify-content: center;">
+        <div style="height: 75px; width: 75px; margin: 15px auto 5px auto; position: relative;">
             {{-- QR Code only appears if AGREED/APPROVED --}}
             @if($surat->opsi_tanda_tangan == 'tte' && $surat->status === 'approved')
+                {{-- SMART URL GENERATION --}}
+                @php
+                    $baseUrl = $schoolProfile->online_url ? rtrim($schoolProfile->online_url, '/') : url('/');
+                    $validationUrl = $baseUrl . '/surat-keluar/validasi/' . ($surat->token ?? 'invalid');
+                @endphp
+
                 {{-- QR CODE VALIDASI (TTE ONLY) --}}
-                <img src="data:image/svg+xml;base64, {{ base64_encode(QrCode::format('svg')->size(80)->errorCorrection('H')->generate(route('surat-keluar.pdf-token', $surat->token ?? 'invalid'))) }}" 
-                     style="width: 80px; height: 80px;" 
+                {{-- Centered 70px QR in 75px container --}}
+                <img src="data:image/svg+xml;base64, {{ base64_encode(QrCode::format('svg')->size(70)->errorCorrection('H')->generate($validationUrl)) }}" 
+                     style="width: 70px; height: 70px; position: absolute; top: 50%; left: 50%; margin-top: -35px; margin-left: -35px;" 
                      alt="QR">
 
                 {{-- LOGO OVERLAY --}}
-                @if($schoolProfile->logo)
-                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 20px; height: 20px; background-color: #fff; padding: 2px; border-radius: 50%;">
-                        <img src="{{ public_path('storage/' . $schoolProfile->logo) }}" 
-                             style="width: 100%; height: 100%; object-fit: contain;" 
-                             alt="Logo">
-                    </div>
-                @endif
-            @endif
+                @php
+                    $logoFile = $schoolProfile->logo_sekolah ?: $schoolProfile->logo;
+                    $logoData = null;
+                    if ($logoFile) {
+                        $path = storage_path('app/public/' . $logoFile);
+                        $fallbackPath = public_path('storage/' . $logoFile);
+                        
+                        if (file_exists($path)) {
+                            $type = pathinfo($path, PATHINFO_EXTENSION);
+                            $logoData = 'data:image/' . $type . ';base64,' . base64_encode(file_get_contents($path));
+                        } elseif (file_exists($fallbackPath)) {
+                            $type = pathinfo($fallbackPath, PATHINFO_EXTENSION);
+                            $logoData = 'data:image/' . $type . ';base64,' . base64_encode(file_get_contents($fallbackPath));
+                        }
+                    }
+                @endphp
 
-            @if($surat->opsi_tanda_tangan == 'manual')
-                <div style="font-style: italic; color: #ccc; position: absolute; top: 30%; width: 100%;">
-                    (Tanda Tangan Basah)
-                </div>
+                @if($logoData)
+                    {{-- White circle background - 22px --}}
+                    <div style="position: absolute; top: 50%; left: 50%; width: 22px; height: 22px; margin-top: -11px; margin-left: -11px; background-color: #ffffff; border-radius: 50%;"></div>
+                    
+                    {{-- Logo - 18px --}}
+                    <img src="{{ $logoData }}" 
+                         style="position: absolute; top: 50%; left: 50%; width: 18px; height: 18px; margin-top: -9px; margin-left: -9px; object-fit: contain;" 
+                         alt="Logo">
+                @endif
             @endif
         </div>
 
-        <p style="text-decoration: underline; font-weight: bold; margin-bottom: 0;">{{ $schoolProfile->kepala_sekolah ?? $schoolProfile->nama_kepala_sekolah }}</p>
-        <p style="margin-top: 0;">NIP. {{ $schoolProfile->nip_kepala_sekolah ?? '-' }}</p>
+        <p style="text-decoration: underline; font-weight: bold; margin-bottom: 0; margin-top: 5px;">{{ $schoolProfile->kepala_sekolah ?? $schoolProfile->nama_kepala_sekolah }}</p>
+        <p style="margin-top: 0;">
+            @if($schoolProfile->nip_kepala_sekolah)
+                NIP. {{ $schoolProfile->nip_kepala_sekolah }}
+            @else
+                NUPTK. {{ $schoolProfile->nuptk ?? '-' }}
+            @endif
+        </p>
     </div>
 
     <div class="clear"></div>
@@ -149,17 +179,39 @@
     {{-- DYNAMIC FOOTER --}}
     @if($surat->footer_enabled)
         @php
-            $footerText = str_replace(
-                ['[NAMA_SEKOLAH]', '[NAMA]', '{token}', '{hari, tanggal, jam}'],
-                [$schoolProfile->nama_sekolah, $schoolProfile->nama_sekolah, $surat->token ?? '-', \Carbon\Carbon::now()->translatedFormat('d F Y H:i')],
-                $surat->footer_text ?? ''
-            );
+            $placeholders = [
+                '[NAMA_SEKOLAH]', '{NAMA_SEKOLAH}',
+                '[NAMA]', '{NAMA}',
+                '[ALAMAT]', '{ALAMAT}',
+                '[WEBSITE]', '{WEBSITE}',
+                '{token}', '[token]',
+                '{hari, tanggal, jam}', '[hari, tanggal, jam]',
+                '{jenis_tanda_tangan}',
+                '{nama_aplikasi}'
+            ];
+            
+            $replacements = [
+                $schoolProfile->nama_sekolah, $schoolProfile->nama_sekolah,
+                $schoolProfile->nama_sekolah, $schoolProfile->nama_sekolah,
+                $schoolProfile->alamat, $schoolProfile->alamat,
+                $schoolProfile->web_sekolah, $schoolProfile->web_sekolah,
+                $surat->token ?? '-', $surat->token ?? '-',
+                \Carbon\Carbon::now()->locale('id')->translatedFormat('l, d F Y H:i'), \Carbon\Carbon::now()->locale('id')->translatedFormat('l, d F Y H:i'),
+                $surat->opsi_tanda_tangan == 'tte' ? 'Tanda Tangan Elektronik' : 'Tanda Tangan Basah',
+                config('app.name', 'SISKO')
+            ];
+
+            $footerText = str_replace($placeholders, $replacements, $surat->footer_text ?? '');
         @endphp
         <div style="position: fixed; bottom: {{ $surat->spacing['footer'] ?? 0 }}cm; left: 0; right: 0; text-align: left; font-size: 9pt; font-style: italic; border-top: 2px double #000; padding-top: 10px; color: #555; padding-left: {{ ($surat->opsi_tanda_tangan == 'manual' && $surat->status === 'approved') ? '90px' : '0' }};">
             
             {{-- QR Code for Manual Signature (validation after scan) --}}
             @if($surat->opsi_tanda_tangan == 'manual' && $surat->status === 'approved')
-                 <img src="data:image/svg+xml;base64, {{ base64_encode(QrCode::format('svg')->size(60)->generate(route('surat-keluar.pdf-token', $surat->token ?? 'invalid'))) }}" 
+                 @php
+                    $baseUrl = $schoolProfile->online_url ? rtrim($schoolProfile->online_url, '/') : url('/');
+                    $validationUrl = $baseUrl . '/surat-keluar/validasi/' . ($surat->token ?? 'invalid');
+                 @endphp
+                 <img src="data:image/svg+xml;base64, {{ base64_encode(QrCode::format('svg')->size(60)->generate($validationUrl)) }}" 
                      style="position: absolute; left: 10px; top: 10px; width: 60px; height: 60px;" 
                      alt="Validation QR">
             @endif

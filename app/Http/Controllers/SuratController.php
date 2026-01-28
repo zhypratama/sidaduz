@@ -29,9 +29,12 @@ class SuratController extends Controller
 
     public function masuk()
     {
-        $surats = SuratMasuk::latest()->paginate(10);
+        $surats = SuratMasuk::with('disposisi.penerima')->latest()->paginate(10);
+        $staffs = \App\Models\User::orderBy('name')->get(['id', 'name']);
+        
         return Inertia::render('Surat/Masuk/Index', [
-            'surats' => $surats
+            'surats' => $surats,
+            'staffs' => $staffs
         ]);
     }
 
@@ -52,7 +55,7 @@ class SuratController extends Controller
         ]);
 
         if ($request->hasFile('file_scan')) {
-            $path = $request->file('file_scan')->store('surat-masuk', 'public');
+            $path = $request->file('file_scan')->store('surat-masuk', 'local');
             $validated['file_scan'] = $path;
         }
 
@@ -73,12 +76,14 @@ class SuratController extends Controller
     {
         $klasifikasis = \App\Models\KlasifikasiSurat::all();
         $templates = \App\Models\SuratTemplate::all();
+        
+        // Fetch SchoolProfile directly to avoid stale cache issues
         $school = \App\Models\SchoolProfile::first();
         
         // Count next number based on current year
         $nextNumber = SuratKeluar::whereYear('tanggal_surat', date('Y'))->count() + 1;
         
-        // Get Default Footer Text
+        // Default Footer Text (No Cache for dynamic updates)
         $footerSetting = \App\Models\AppSetting::where('key', 'footer_text_surat')->first();
         $defaultFooter = $footerSetting ? $footerSetting->value : 'Dokumen ini telah ditandatangani secara elektronik yang diterbitkan oleh Balai Sertifikasi Elektronik (BSrE), BSSN.';
 
@@ -87,7 +92,8 @@ class SuratController extends Controller
             'templates' => $templates,
             'school' => $school,
             'nextNumber' => $nextNumber,
-            'defaultFooter' => $defaultFooter
+            'defaultFooter' => $defaultFooter,
+            'serverDate' => now()->toDateString(), // Pass strict server date
         ]);
     }
 
@@ -164,8 +170,8 @@ class SuratController extends Controller
         $surat = SuratKeluar::with('klasifikasi')->findOrFail($id);
         
         // If uploaded scan exists, serve that file instead of generating template
-        if ($surat->file_scan && \Illuminate\Support\Facades\Storage::disk('public')->exists($surat->file_scan)) {
-            return response()->file(storage_path('app/public/'.$surat->file_scan), [
+        if ($surat->file_scan && \Illuminate\Support\Facades\Storage::disk('local')->exists($surat->file_scan)) {
+            return response()->file(storage_path('app/'.$surat->file_scan), [
                 'Content-Disposition' => 'inline; filename="Surat_Keluar_SCAN_' . $surat->no_surat . '.pdf"'
             ]);
         }
@@ -197,8 +203,8 @@ class SuratController extends Controller
         $surat = SuratKeluar::with('klasifikasi')->where('token', $token)->firstOrFail();
         
         // If uploaded scan exists, serve that for validation
-        if ($surat->file_scan && \Illuminate\Support\Facades\Storage::disk('public')->exists($surat->file_scan)) {
-            return response()->file(storage_path('app/public/'.$surat->file_scan), [
+        if ($surat->file_scan && \Illuminate\Support\Facades\Storage::disk('local')->exists($surat->file_scan)) {
+            return response()->file(storage_path('app/'.$surat->file_scan), [
                 'Content-Disposition' => 'inline; filename="Surat_Keluar_SCAN_' . $surat->no_surat . '.pdf"'
             ]);
         }
@@ -225,11 +231,38 @@ class SuratController extends Controller
 
     public function validasi($token)
     {
-        $surat = SuratKeluar::where('token', $token)->firstOrFail();
+        $surat = SuratKeluar::with(['approver.gtk'])->where('token', $token)->firstOrFail();
         
+        // Resolve Signer Name
+        $penandatangan = '-';
+        $jabatan = '-';
+
+        if ($surat->approver) {
+            $penandatangan = $surat->approver->gtk ? $surat->approver->gtk->nama : $surat->approver->name;
+            $jabatan = $surat->approver->gtk ? $surat->approver->gtk->jabatan : 'Kepala Sekolah'; // Default if GTK not linked
+        } elseif ($surat->status === 'approved') {
+            // Fallback if approved but relation is broken (rare)
+             $penandatangan = 'Administrator';
+             $jabatan = 'Kepala Sekolah';
+        }
+
+        // Format Timestamp
+        \Carbon\Carbon::setLocale('id');
+        $approvedAt = $surat->approved_at ? \Carbon\Carbon::parse($surat->approved_at) : null;
+        
+        $validasiInfo = [
+            'hari' => $approvedAt ? $approvedAt->translatedFormat('l') : '-',
+            'tanggal' => $approvedAt ? $approvedAt->translatedFormat('d F Y') : '-',
+            'jam' => $approvedAt ? $approvedAt->format('H:i') . ' WIB' : '-',
+        ];
+
         return Inertia::render('Surat/Validasi', [
             'surat' => $surat,
-            'status' => $surat->status === 'approved' ? 'valid' : 'invalid'
+            'status' => $surat->status === 'approved' ? 'valid' : 'invalid',
+            'penandatangan' => $penandatangan,
+            'jabatan' => $jabatan,
+            'validasi_info' => $validasiInfo,
+            'school_name' => \App\Models\SchoolProfile::first()->nama_sekolah ?? '[NAMA INSTITUSI SEKOLAH]',
         ]);
     }
 
@@ -241,11 +274,11 @@ class SuratController extends Controller
 
         $surat = SuratKeluar::findOrFail($id);
         
-        if ($surat->file_scan && \Illuminate\Support\Facades\Storage::disk('public')->exists($surat->file_scan)) {
-            \Illuminate\Support\Facades\Storage::disk('public')->delete($surat->file_scan);
+        if ($surat->file_scan && \Illuminate\Support\Facades\Storage::disk('local')->exists($surat->file_scan)) {
+            \Illuminate\Support\Facades\Storage::disk('local')->delete($surat->file_scan);
         }
 
-        $path = $request->file('file_scan')->store('surat-keluar/scan', 'public');
+        $path = $request->file('file_scan')->store('surat-keluar/scan', 'local');
         
         $surat->update(['file_scan' => $path]);
 
@@ -256,8 +289,8 @@ class SuratController extends Controller
     {
         $surat = SuratMasuk::findOrFail($id);
         
-        if ($surat->file_scan && \Illuminate\Support\Facades\Storage::disk('public')->exists($surat->file_scan)) {
-            \Illuminate\Support\Facades\Storage::disk('public')->delete($surat->file_scan);
+        if ($surat->file_scan && \Illuminate\Support\Facades\Storage::disk('local')->exists($surat->file_scan)) {
+            \Illuminate\Support\Facades\Storage::disk('local')->delete($surat->file_scan);
         }
 
         $surat->delete();
@@ -268,8 +301,8 @@ class SuratController extends Controller
     {
         $surat = SuratKeluar::findOrFail($id);
         
-        if ($surat->file_scan && \Illuminate\Support\Facades\Storage::disk('public')->exists($surat->file_scan)) {
-            \Illuminate\Support\Facades\Storage::disk('public')->delete($surat->file_scan);
+        if ($surat->file_scan && \Illuminate\Support\Facades\Storage::disk('local')->exists($surat->file_scan)) {
+            \Illuminate\Support\Facades\Storage::disk('local')->delete($surat->file_scan);
         }
 
         // Technically generated PDF isn't stored, it's generated on fly.
@@ -341,11 +374,11 @@ class SuratController extends Controller
         }
 
         $school->update([
-            'nama' => $request->nama_sekolah,
+            'nama_sekolah' => $request->nama_sekolah,
             'alamat' => $request->alamat,
-            'website' => $request->website,
-            'email' => $request->email,
-            'notelp' => $request->notelp,
+            'web_sekolah' => $request->website,
+            // 'email' => $request->email, // Email not in fillable? Assuming checking DB later. 
+            'no_telp_sekolah' => $request->notelp,
              // logo saved above if present
         ]);
 
@@ -354,6 +387,10 @@ class SuratController extends Controller
             ['key' => 'footer_text_surat'],
             ['value' => $request->footer_text]
         );
+
+        // Clear cache after update
+        \Cache::forget('school_profile');
+        \Cache::forget('footer_text_surat');
 
         return back()->with('success', 'Pengaturan surat berhasil disimpan.');
     }

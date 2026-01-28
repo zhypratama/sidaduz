@@ -179,7 +179,7 @@ class GtkController extends Controller
         $user = \App\Models\User::create([
             'name' => $gtk->nama,
             'email' => $email,
-            'password' => bcrypt('12345678'), // Default password
+            'password' => bcrypt('Sidadu@' . ($gtk->nip ?? 'GTK')), // Default password
         ]);
 
         // Assign Role based on Jabatan (Simplified)
@@ -188,7 +188,7 @@ class GtkController extends Controller
         // Update GTK
         $gtk->update(['user_id' => $user->id]);
 
-        return back()->with('success', 'Akun berhasil dibuat. Email: ' . $user->email . ' | Pass: 12345678');
+        return back()->with('success', 'Akun berhasil dibuat. Password default: Sidadu@' . ($gtk->nip ?? 'GTK'));
     }
 
     public function generateAll()
@@ -213,7 +213,7 @@ class GtkController extends Controller
                 $user = \App\Models\User::create([
                     'name' => $gtk->nama,
                     'email' => $email,
-                    'password' => bcrypt('12345678'),
+                    'password' => bcrypt('Sidadu@' . ($gtk->nip ?? 'GTK')),
                 ]);
 
                 // Assign Role (Default Guru)
@@ -261,19 +261,26 @@ class GtkController extends Controller
         $gtk = Gtk::findOrFail($id);
         if (!$gtk->user_id) return back()->with('error', 'GTK belum memiliki akun.');
 
+        $pass = 'Sidadu@' . ($gtk->nip ?? 'GTK');
         $gtk->user->update([
-            'password' => bcrypt('12345678')
+            'password' => bcrypt($pass)
         ]);
 
-        return back()->with('success', 'Password berhasil direset ke 12345678');
+        return back()->with('success', 'Password berhasil direset ke: ' . $pass);
     }
 
     // --- Manajemen Piket ---
     public function piket()
     {
         $gtks = Gtk::orderBy('nama')->get();
-        // Grouping piket by hari
-        $pikets = \App\Models\JadwalPiket::with('gtk')->get()->groupBy('hari');
+        
+        // Optimasi: Hanya load piket tahun ini agar tidak berat loading history
+        $currentYear = date('Y');
+        
+        $pikets = \App\Models\JadwalPiket::with('gtk')
+            ->where('tahun_ajaran', $currentYear)
+            ->get()
+            ->groupBy('hari');
         
         return Inertia::render('GTK/Piket', [
             'gtks' => $gtks,
@@ -283,6 +290,51 @@ class GtkController extends Controller
 
     public function storePiket(Request $request)
     {
+        // Check if this is a Bulk Sync from Drag & Drop
+        if ($request->has('schedules')) {
+            $validated = $request->validate([
+                'schedules' => 'required|array',
+                'schedules.*.gtk_id' => 'required|exists:gtks,id',
+                'schedules.*.hari' => 'required',
+                'schedules.*.jam_mulai' => 'nullable',
+                'schedules.*.jam_selesai' => 'nullable',
+            ]);
+
+            $currentYear = date('Y'); // Logic sederhana, idealnya dari setting tahun ajaran
+            
+            // Opsional: Reset hari yang disentuh atau update on duplicate
+            // Strategi aman: Loop update or create
+            
+            foreach ($request->schedules as $item) {
+                // Cari record existing atau buat baru
+                // Kita asumsikan drag & drop bisa memindahkan dari satu hari ke hari lain
+                // Jika ID dikirim, update. Jika tidak, create.
+                
+                if (isset($item['id'])) {
+                    $piket = \App\Models\JadwalPiket::find($item['id']);
+                    if ($piket) {
+                        $piket->update([
+                            'hari' => $item['hari'],
+                            'jam_mulai' => $item['jam_mulai'] ?? '07:00',
+                            'jam_selesai' => $item['jam_selesai'] ?? '15:00',
+                        ]);
+                    }
+                } else {
+                    \App\Models\JadwalPiket::create([
+                        'gtk_id' => $item['gtk_id'],
+                        'hari' => $item['hari'],
+                        'tahun_ajaran' => $currentYear, 
+                        'semester' => 'Ganjil', // Default, bisa disesuaikan
+                        'jam_mulai' => $item['jam_mulai'] ?? '07:00',
+                        'jam_selesai' => $item['jam_selesai'] ?? '15:00',
+                    ]);
+                }
+            }
+            
+            return back()->with('success', 'Perubahan jadwal berhasil disimpan!');
+        }
+
+        // Fallback for single add (Classic Form)
         $validated = $request->validate([
             'gtk_id' => 'required|exists:gtks,id',
             'hari' => 'required',
@@ -295,6 +347,13 @@ class GtkController extends Controller
         \App\Models\JadwalPiket::create($validated);
 
         return back()->with('success', 'Petugas piket berhasil ditambahkan!');
+    }
+
+    public function destroyPiket($id)
+    {
+        $piket = \App\Models\JadwalPiket::findOrFail($id);
+        $piket->delete();
+        return back()->with('success', 'Petugas dihapus dari jadwal.');
     }
 
     // --- Manajemen Role ---

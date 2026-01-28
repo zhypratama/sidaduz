@@ -3,7 +3,28 @@
         Options -MultiViews -Indexes
     </IfModule>
 
+    # --- SECURITY HARDENING START ---
+    
+    # 1. Disable Directory Listing
+    Options -Indexes
+
+    # 2. Block Access to Dot Files (.env, .git, etc.)
+    RewriteRule \.(env|git|svn) - [F,L]
+
+    # 3. Block Access to Backup/Log/Source Files
+    RewriteRule \.(sql|log|sh|bat|cmd|ini|pot|po|mo)$ - [F,L]
+    
+    # 4. Block Composer Files
+    RewriteRule ^(composer\.json|composer\.lock)$ - [F,L]
+    RewriteRule ^(package\.json|package-lock\.json)$ - [F,L]
+    
+    # 5. Prevent execution of PHP files in storage (if somehow mapped)
+    # Note: Usually handled by Nginx/Apache config, but good to add checks
+    
+    # --- SECURITY HARDENING END ---
+
     RewriteEngine On
+    RewriteBase /sidaduz/public/
 
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .

@@ -6,6 +6,7 @@ use App\Models\Student;
 use App\Models\Kelas;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\DB;
 
 class StudentController extends Controller
 {
@@ -18,7 +19,7 @@ class StudentController extends Controller
 
         if ($request->has('search')) {
             $query->where('nama_lengkap', 'like', '%' . $request->search . '%')
-                  ->orWhere('nis', 'like', '%' . $request->search . '%');
+                  ->orWhere('nipd', 'like', '%' . $request->search . '%');
         }
 
         $perPage = $request->input('per_page', 10);
@@ -202,10 +203,25 @@ class StudentController extends Controller
     }
 
     // --- Manajemen Akun Siswa ---
-    public function akun()
+    public function akun(Request $request)
     {
-        $students = Student::with('user')->latest()->paginate(10);
-        return Inertia::render('Siswa/Akun', ['students' => $students]);
+        $query = Student::with('user');
+
+        if ($request->has('search')) {
+            $query->where(function($q) use ($request) {
+                $q->where('nama_lengkap', 'like', '%' . $request->search . '%')
+                  ->orWhere('nipd', 'like', '%' . $request->search . '%')
+                  ->orWhere('nisn', 'like', '%' . $request->search . '%');
+            });
+        }
+
+        $perPage = $request->input('per_page', 10);
+        $students = $query->latest()->paginate($perPage)->withQueryString();
+        
+        return Inertia::render('Siswa/Akun', [
+            'students' => $students,
+            'filters' => $request->only(['search', 'per_page'])
+        ]);
     }
 
     public function storeAkun($id)
@@ -217,14 +233,14 @@ class StudentController extends Controller
             return back()->with('error', 'Siswa ini sudah memiliki akun.');
         }
 
-        // Email Fake jika tidak ada
-        $email = $student->email ?? $student->nis . '@student.sekolah.id';
+        // Generate Email: NISN@sidadu.id (fallback nipd if nisn null)
+        $email = $student->email ?? ($student->nisn ? $student->nisn . '@sidadu.id' : $student->nipd . '@sidadu.id');
 
         // Buat User Baru
         $user = \App\Models\User::create([
             'name' => $student->nama_lengkap,
             'email' => $email,
-            'password' => bcrypt($student->nisn ?? '12345678'), // Default password NISN atau 12345678
+            'password' => bcrypt('Sidadu@' . ($student->nisn ?? '123')), // Default password pattern for compliance
         ]);
 
         $user->assignRole('Siswa');
@@ -232,7 +248,7 @@ class StudentController extends Controller
         // Update Student
         $student->update(['user_id' => $user->id]);
 
-        return back()->with('success', 'Akun berhasil dibuat. Login: Email/NIS, Password: ' . ($student->nisn ?? '12345678'));
+        return back()->with('success', 'Akun berhasil dibuat. Password default: Sidadu@' . ($student->nisn ?? '123'));
     }
 
     public function resetPassword($id)
@@ -240,7 +256,7 @@ class StudentController extends Controller
         $student = Student::findOrFail($id);
         if (!$student->user_id) return back()->with('error', 'Siswa belum memiliki akun.');
 
-        $pass = $student->nisn ?? '12345678';
+        $pass = 'Sidadu@' . ($student->nisn ?? '123');
         $student->user->update([
             'password' => bcrypt($pass)
         ]);
@@ -250,23 +266,49 @@ class StudentController extends Controller
 
     public function generateAll()
     {
+        // Optimization: Increase time and memory limits
+        set_time_limit(600); 
+        ini_set('memory_limit', '512M');
+
         $students = Student::whereNull('user_id')->get();
+        // Optimization: Fetch all existsing emails once for O(1) lookup
+        // Using toArray and array_flip for fast hash map lookup
+        $existingEmails = \App\Models\User::pluck('email')->toArray();
+        $existingEmailsMap = array_flip($existingEmails);
+        
         $count = 0;
+        // Optimization: Pre-compute default password hash
+        $defaultPassHash = bcrypt('Sidadu@123'); 
 
-        foreach ($students as $student) {
-            $email = $student->email ?? $student->nis . '@student.sekolah.id';
-            
-            if (\App\Models\User::where('email', $email)->exists()) continue;
+        DB::beginTransaction();
+        try {
+            foreach ($students as $student) {
+                // Generate Email: NISN@sidadu.id (fallback nipd)
+                $email = $student->email ?? ($student->nisn ? $student->nisn . '@sidadu.id' : $student->nipd . '@sidadu.id');
+                
+                // Fast check using memory map
+                if (isset($existingEmailsMap[$email])) continue;
 
-            $user = \App\Models\User::create([
-                'name' => $student->nama_lengkap,
-                'email' => $email,
-                'password' => bcrypt($student->nisn ?? '12345678'),
-            ]);
+                // Hash password (compute only if distinct from default)
+                $password = $student->nisn ? bcrypt('Sidadu@' . $student->nisn) : $defaultPassHash;
 
-            $user->assignRole('Siswa');
-            $student->update(['user_id' => $user->id]);
-            $count++;
+                $user = \App\Models\User::create([
+                    'name' => $student->nama_lengkap,
+                    'email' => $email,
+                    'password' => $password,
+                ]);
+
+                $user->assignRole('Siswa');
+                $student->update(['user_id' => $user->id]);
+                
+                // Add to map to prevent duplicates in this run
+                $existingEmailsMap[$email] = true;
+                $count++;
+            }
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Gagal generate akun: ' . $e->getMessage());
         }
 
         return back()->with('success', "Berhasil membuat $count akun siswa baru.");

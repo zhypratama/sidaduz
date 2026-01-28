@@ -19,6 +19,19 @@
 /storage/*.key
 /storage/pail
 /vendor
+/storage/app/backups
+*.sql
+*.zip
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Security: Ignore test files and backups
+test.php
+*.test.php
+*.bak
+*.old
+*.tmp
+*.temp
+*_backup.*
+build_error.log

@@ -1,0 +1,21 @@
+{
+    "name": "SIDADU Mobile",
+    "short_name": "SIDADU",
+    "description": "Sistem Informasi Data Administrasi Terpadu - Mobile App",
+    "start_url": "/wali/login",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#4F46E5",
+    "icons": [
+        {
+            "src": "/images/logo.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/images/logo.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}
