@@ -33,7 +33,7 @@
 
 Aplikasi ini dibangun denga stack modern untuk performa dan skalabilitas:
 
-*   **Backend**: [Laravel 11](https://laravel.com) (PHP Framework)
+*   **Backend**: [Laravel 12](https://laravel.com) (PHP Framework)
 *   **Frontend**: [Inertia.js](https://inertiajs.com) dengan [React](https://reactjs.org)
 *   **Styling**: [Tailwind CSS](https://tailwindcss.com)
 *   **Database**: MySQL / MariaDB
@@ -121,7 +121,7 @@ Akses aplikasi di browser melalui: `http://localhost:8000`
 
 Jika menggunakan `db:seed`, akun default yang tersedia:
 
-*   **Email**: `admin@smpalirsyad.sch.id`
+*   **Email**: `admin@sekolah.id`
 *   **Password**: `password`
 
 ---
@@ -134,5 +134,5 @@ Kontribusi sangat diterima! Silakan fork repository ini dan kirimkan Pull Reques
 
 ## 📄 Lisensi
 
-Copyright © 2026 [NAMA INSTITUSI SEKOLAH].
+Copyright © 2026 Fanzhy Soft
 All rights reserved.
